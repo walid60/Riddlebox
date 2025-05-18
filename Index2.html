@@ -16,7 +16,7 @@
     .error { color: red; }
     .logout-btn { margin-top: 1rem; background: #dc2626; }
     .disabled { background: #d1d5db !important; color: #6b7280 !important; }
-  </style>
+    </style>
 </head>
 <body>
   <header>
@@ -35,11 +35,38 @@
       <h2>Riddle of the Week</h2>
       <p>There are five <strong>pilots</strong>, each operating a different <strong>aircraft</strong> in five <strong>hangars</strong> painted in different colors.
          Each pilot is from a different <strong>country</strong>, drinks a different <strong>beverage</strong>, and communicates in a different <strong>radio call sign</strong>.</p>
+      <p>No two pilots share the same aircraft, country, beverage, or call sign.</p>
+      <p><strong>Clues:</strong></p>
+      <ul>
+        <li>The French pilot is in the red hangar.</li>
+        <li>The Brazilian pilot flies a cargo plane.</li>
+        <li>The German drinks black coffee.</li>
+        <li>The blue hangar is immediately to the left of the white hangar.</li>
+        <li>The pilot in the green hangar drinks tea.</li>
+        <li>The one using the “Bravo” call sign flies a passenger jet.</li>
+        <li>The yellow hangar hosts the pilot using “Echo” call sign.</li>
+        <li>The pilot in the middle hangar drinks water.</li>
+        <li>The Canadian pilot is in the first hangar.</li>
+        <li>The pilot using “Charlie” is next to the one flying a helicopter.</li>
+        <li>The one with a fighter jet is next to the pilot using “Echo”.</li>
+        <li>The pilot with the “Alpha” call sign drinks soda.</li>
+        <li>The Japanese pilot uses the “Delta” call sign.</li>
+        <li>The Canadian is next to the blue hangar.</li>
+        <li>The pilot using “Charlie” is next to the one who drinks juice.</li>
+      </ul>
       <p><strong>Question:</strong> Which pilot flies the Airbus A350?</p>
-      <input type="text" id="answer" placeholder="Type your answer" />
+      <input type="text" id="answer" placeholder="Type your answer (e.g. Hangar)" />
       <button type="button" id="submitBtn" onclick="submitRiddle()">Submit Answer</button>
       <p id="feedback" aria-live="polite"></p>
     </div>
+
+    <div class="box hidden" id="profileBox">
+      <h2>Your Profile</h2>
+      <p><strong>Name:</strong> <span id="profileName"></span></p>
+      <p><strong>Score:</strong> <span id="profileScore">0</span></p>
+      <button type="button" class="logout-btn" onclick="logout()">Déconnexion</button>
+    </div>
+  </div>
 
     <div class="box hidden" id="profileBox">
       <h2>Your Profile</h2>
