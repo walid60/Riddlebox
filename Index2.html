@@ -16,7 +16,7 @@
     .error { color: red; }
     .logout-btn { margin-top: 1rem; background: #dc2626; }
     .disabled { background: #d1d5db !important; color: #6b7280 !important; }
-    </style>
+  </style>
 </head>
 <body>
   <header>
@@ -68,14 +68,6 @@
     </div>
   </div>
 
-    <div class="box hidden" id="profileBox">
-      <h2>Your Profile</h2>
-      <p><strong>Name:</strong> <span id="profileName"></span></p>
-      <p><strong>Score:</strong> <span id="profileScore">0</span></p>
-      <button type="button" class="logout-btn" onclick="logout()">Log Out</button>
-    </div>
-  </div>
-
   <script>
     const correctAnswer = "German";
     let user = { name: "", score: 0, solved: false, wrongAnswers: [] };
@@ -113,6 +105,7 @@
       if (user.solved) {
         feedback.textContent = "You already played.";
         feedback.className = user.wrongAnswers.length > 0 ? "error" : "success";
+        answerInput.value = "";
         return;
       }
 
@@ -130,8 +123,13 @@
       }
 
       localStorage.setItem("riddlebox_" + user.name, JSON.stringify(user));
+      answerInput.value = "";
       updateInputState();
-      sendScoreToGitHub(user.name, answer, answerLower === correctAnswer.toLowerCase());
+
+      // ---- ATTENTION ----
+      // N'UTILISE JAMAIS DE TOKEN GITHUB DANS LE JS DU NAVIGATEUR, c'est dangereux.
+      // Pour envoyer les scores sur GitHub, fais-le côté serveur uniquement !
+      // sendScoreToGitHub(user.name, answer, answerLower === correctAnswer.toLowerCase());
     }
 
     function updateInputState() {
@@ -155,54 +153,6 @@
       document.getElementById("nickname").value = "";
       document.getElementById("answer").value = "";
       document.getElementById("feedback").textContent = "";
-    }
-
-    // GitHub API push
-    const GITHUB_TOKEN = "TON_TOKEN_ICI"; // Ajoute ici ton token GitHub personnel
-    const REPO_OWNER = "walid60";
-    const REPO_NAME = "RiddleBox";
-    const FILE_PATH = "scoreboard.json";
-    const API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
-
-    async function sendScoreToGitHub(nickname, answer, isCorrect) {
-      try {
-        const response = await fetch(API_URL, {
-          headers: {
-            Authorization: `token ${GITHUB_TOKEN}`,
-            Accept: "application/vnd.github.v3+json"
-          }
-        });
-        const data = await response.json();
-        const content = JSON.parse(atob(data.content));
-        const newEntry = {
-          name: nickname,
-          answer: answer,
-          correct: isCorrect,
-          date: new Date().toISOString()
-        };
-        content.push(newEntry);
-
-        const updated = await fetch(API_URL, {
-          method: "PUT",
-          headers: {
-            Authorization: `token ${GITHUB_TOKEN}`,
-            Accept: "application/vnd.github.v3+json"
-          },
-          body: JSON.stringify({
-            message: `Add score for ${nickname}`,
-            content: btoa(JSON.stringify(content, null, 2)),
-            sha: data.sha
-          })
-        });
-
-        if (updated.ok) {
-          console.log("Score sent to GitHub.");
-        } else {
-          console.error("GitHub update failed:", await updated.text());
-        }
-      } catch (error) {
-        console.error("Error sending score:", error);
-      }
     }
   </script>
 </body>
