@@ -1,0 +1,111 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RiddleBox</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; background: #f9fafb; }
+    header { background: #111827; color: white; padding: 1rem; text-align: center; }
+    .container { padding: 2rem; max-width: 800px; margin: auto; }
+    .box { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.05); margin-bottom: 2rem; }
+    input, button { padding: 10px; width: 100%; margin-top: 1rem; font-size: 16px; }
+    button { background: #111827; color: white; border: none; border-radius: 5px; }
+    .hidden { display: none; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>RiddleBox</h1>
+    <p>The Weekly Brain Challenge</p>
+  </header>
+
+  <div class="container">
+    <div class="box" id="loginBox">
+      <h2>Enter your nickname</h2>
+      <input type="text" id="nickname" placeholder="Your nickname" />
+      <button onclick="startSession()">Start</button>
+    </div>
+
+    <div class="box hidden" id="riddleBox">
+      <h2>Riddle of the Week</h2>
+      <p>There are five <strong>pilots</strong>, each operating a different <strong>aircraft</strong> in five <strong>hangars</strong> painted in different colors.
+         Each pilot is from a different <strong>country</strong>, drinks a different <strong>beverage</strong>, and communicates in a different <strong>radio call sign</strong>.</p>
+      <p>No two pilots share the same aircraft, country, beverage, or call sign.</p>
+      <p><strong>Clues:</strong></p>
+      <ul>
+        <li>The French pilot is in the red hangar.</li>
+        <li>The Brazilian pilot flies a cargo plane.</li>
+        <li>The German drinks black coffee.</li>
+        <li>The blue hangar is immediately to the left of the white hangar.</li>
+        <li>The pilot in the green hangar drinks tea.</li>
+        <li>The one using the “Bravo” call sign flies a passenger jet.</li>
+        <li>The yellow hangar hosts the pilot using “Echo” call sign.</li>
+        <li>The pilot in the middle hangar drinks water.</li>
+        <li>The Canadian pilot is in the first hangar.</li>
+        <li>The pilot using “Charlie” is next to the one flying a helicopter.</li>
+        <li>The one with a fighter jet is next to the pilot using “Echo”.</li>
+        <li>The pilot with the “Alpha” call sign drinks soda.</li>
+        <li>The Japanese pilot uses the “Delta” call sign.</li>
+        <li>The Canadian is next to the blue hangar.</li>
+        <li>The pilot using “Charlie” is next to the one who drinks juice.</li>
+      </ul>
+      <p><strong>Question:</strong> Which pilot flies the Airbus A350?</p>
+      <input type="text" id="answer" placeholder="Type your answer (e.g. German)" />
+      <button onclick="submitRiddle()">Submit Answer</button>
+      <p id="feedback"></p>
+    </div>
+
+    <div class="box hidden" id="profileBox">
+      <h2>Your Profile</h2>
+      <p><strong>Name:</strong> <span id="profileName"></span></p>
+      <p><strong>Score:</strong> <span id="profileScore">0</span></p>
+    </div>
+  </div>
+
+  <script>
+    const correctAnswer = "German";
+    let user = { name: "", score: 0 };
+
+    function startSession() {
+      const name = document.getElementById("nickname").value.trim();
+      if (!name) return alert("Please enter your nickname");
+
+      user.name = name;
+      const saved = localStorage.getItem("riddlebox_" + name);
+      if (saved) user = JSON.parse(saved);
+      else localStorage.setItem("riddlebox_" + name, JSON.stringify(user));
+
+      document.getElementById("profileName").textContent = user.name;
+      document.getElementById("profileScore").textContent = user.score;
+      document.getElementById("loginBox").classList.add("hidden");
+      document.getElementById("riddleBox").classList.remove("hidden");
+      document.getElementById("profileBox").classList.remove("hidden");
+    }
+
+    function submitRiddle() {
+      const answer = document.getElementById("answer").value.trim().toLowerCase();
+      const feedback = document.getElementById("feedback");
+      if (answer === correctAnswer.toLowerCase()) {
+        if (!user.solved) {
+          user.score += 1;
+          user.solved = true;
+          feedback.textContent = "Correct! The A350 is flown by the German pilot.";
+          feedback.className = "success";
+          document.getElementById("profileScore").textContent = user.score;
+          localStorage.setItem("riddlebox_" + user.name, JSON.stringify(user));
+        } else {
+          feedback.textContent = "You already solved this riddle.";
+          feedback.className = "error";
+        }
+      } else {
+        feedback.textContent = "Incorrect. Try again.";
+        feedback.className = "error";
+      }
+    }
+  </script>
+</body>
+</html>
