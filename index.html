@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,6 +14,8 @@
     .hidden { display: none; }
     .success { color: green; }
     .error { color: red; }
+    .logout-btn { margin-top: 1rem; background: #dc2626; }
+    .disabled { background: #d1d5db !important; color: #6b7280 !important; }
   </style>
 </head>
 <body>
@@ -27,7 +28,7 @@
     <div class="box" id="loginBox">
       <h2>Enter your nickname</h2>
       <input type="text" id="nickname" placeholder="Your nickname" />
-      <button onclick="startSession()">Start</button>
+      <button type="button" onclick="startSession()">Start</button>
     </div>
 
     <div class="box hidden" id="riddleBox">
@@ -55,56 +56,108 @@
       </ul>
       <p><strong>Question:</strong> Which pilot flies the Airbus A350?</p>
       <input type="text" id="answer" placeholder="Type your answer (e.g. German)" />
-      <button onclick="submitRiddle()">Submit Answer</button>
-      <p id="feedback"></p>
+      <button type="button" id="submitBtn" onclick="submitRiddle()">Submit Answer</button>
+      <p id="feedback" aria-live="polite"></p>
     </div>
 
     <div class="box hidden" id="profileBox">
       <h2>Your Profile</h2>
       <p><strong>Name:</strong> <span id="profileName"></span></p>
       <p><strong>Score:</strong> <span id="profileScore">0</span></p>
+      <button type="button" class="logout-btn" onclick="logout()">Déconnexion</button>
     </div>
   </div>
 
   <script>
     const correctAnswer = "German";
-    let user = { name: "", score: 0 };
+    let user = { name: "", score: 0, solved: false, wrongAnswers: [] };
 
     function startSession() {
       const name = document.getElementById("nickname").value.trim();
       if (!name) return alert("Please enter your nickname");
 
-      user.name = name;
       const saved = localStorage.getItem("riddlebox_" + name);
-      if (saved) user = JSON.parse(saved);
-      else localStorage.setItem("riddlebox_" + name, JSON.stringify(user));
+      if (saved) {
+        user = JSON.parse(saved);
+        // Rétrocompatibilité si wrongAnswers ou solved n'existent pas déjà
+        if (typeof user.solved === "undefined") user.solved = false;
+        if (!Array.isArray(user.wrongAnswers)) user.wrongAnswers = [];
+      } else {
+        user = { name: name, score: 0, solved: false, wrongAnswers: [] };
+        localStorage.setItem("riddlebox_" + name, JSON.stringify(user));
+      }
 
       document.getElementById("profileName").textContent = user.name;
       document.getElementById("profileScore").textContent = user.score;
       document.getElementById("loginBox").classList.add("hidden");
       document.getElementById("riddleBox").classList.remove("hidden");
       document.getElementById("profileBox").classList.remove("hidden");
+      document.getElementById("feedback").textContent = "";
+      document.getElementById("answer").value = "";
+      updateInputState();
+      // Si déjà joué, on affiche le feedback adapté
+      if (user.solved) {
+        if (user.wrongAnswers.length > 0) {
+          document.getElementById("feedback").textContent = "Désolé, vous avez déjà tenté avec : " + user.wrongAnswers.join(', ') + ". Vous ne pouvez plus rejouer.";
+          document.getElementById("feedback").className = "error";
+        } else {
+          document.getElementById("feedback").textContent = "Vous avez déjà résolu cette énigme.";
+          document.getElementById("feedback").className = "success";
+        }
+      }
     }
 
     function submitRiddle() {
-      const answer = document.getElementById("answer").value.trim().toLowerCase();
+      const answerInput = document.getElementById("answer");
+      const submitBtn = document.getElementById("submitBtn");
+      const answer = answerInput.value.trim();
+      const answerLower = answer.toLowerCase();
       const feedback = document.getElementById("feedback");
-      if (answer === correctAnswer.toLowerCase()) {
-        if (!user.solved) {
-          user.score += 1;
-          user.solved = true;
-          feedback.textContent = "Correct! The A350 is flown by the German pilot.";
-          feedback.className = "success";
-          document.getElementById("profileScore").textContent = user.score;
-          localStorage.setItem("riddlebox_" + user.name, JSON.stringify(user));
-        } else {
-          feedback.textContent = "You already solved this riddle.";
-          feedback.className = "error";
-        }
+
+      if (user.solved) {
+        feedback.textContent = "Vous avez déjà joué.";
+        feedback.className = user.wrongAnswers.length > 0 ? "error" : "success";
+        return;
+      }
+
+      if (answerLower === correctAnswer.toLowerCase()) {
+        user.score += 1;
+        user.solved = true;
+        feedback.textContent = "Correct! The A350 is flown by the German pilot.";
+        feedback.className = "success";
+        document.getElementById("profileScore").textContent = user.score;
       } else {
-        feedback.textContent = "Incorrect. Try again.";
+        user.solved = true;
+        user.wrongAnswers.push(answer);
+        feedback.textContent = "Incorrect. Votre réponse (« " + answer + " ») est enregistrée, vous ne pouvez plus rejouer.";
         feedback.className = "error";
       }
+      localStorage.setItem("riddlebox_" + user.name, JSON.stringify(user));
+      answerInput.value = "";
+      updateInputState();
+    }
+
+    function updateInputState() {
+      const answerInput = document.getElementById("answer");
+      const submitBtn = document.getElementById("submitBtn");
+      if (user.solved) {
+        answerInput.disabled = true;
+        submitBtn.disabled = true;
+        submitBtn.classList.add("disabled");
+      } else {
+        answerInput.disabled = false;
+        submitBtn.disabled = false;
+        submitBtn.classList.remove("disabled");
+      }
+    }
+
+    function logout() {
+      document.getElementById("loginBox").classList.remove("hidden");
+      document.getElementById("riddleBox").classList.add("hidden");
+      document.getElementById("profileBox").classList.add("hidden");
+      document.getElementById("nickname").value = "";
+      document.getElementById("answer").value = "";
+      document.getElementById("feedback").textContent = "";
     }
   </script>
 </body>
