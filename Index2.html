@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RiddleBox</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; padding: 0; background: #f9fafb; }
+    header { background: #111827; color: white; padding: 1rem; text-align: center; }
+    .container { padding: 2rem; max-width: 800px; margin: auto; }
+    .box { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.05); margin-bottom: 2rem; }
+    input, button { padding: 10px; width: 100%; margin-top: 1rem; font-size: 16px; }
+    button { background: #111827; color: white; border: none; border-radius: 5px; }
+    .hidden { display: none; }
+    .success { color: green; }
+    .error { color: red; }
+    .logout-btn { margin-top: 1rem; background: #dc2626; }
+    .disabled { background: #d1d5db !important; color: #6b7280 !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>RiddleBox</h1>
+    <p>The Weekly Brain Challenge</p>
+  </header>
+
+  <div class="container">
+    <div class="box" id="loginBox">
+      <h2>Enter your nickname</h2>
+      <input type="text" id="nickname" placeholder="Your nickname" />
+      <button type="button" onclick="startSession()">Start</button>
+    </div>
+
+    <div class="box hidden" id="riddleBox">
+      <h2>Riddle of the Week</h2>
+      <p>There are five <strong>pilots</strong>, each operating a different <strong>aircraft</strong> in five <strong>hangars</strong> painted in different colors.
+         Each pilot is from a different <strong>country</strong>, drinks a different <strong>beverage</strong>, and communicates in a different <strong>radio call sign</strong>.</p>
+      <p><strong>Question:</strong> Which pilot flies the Airbus A350?</p>
+      <input type="text" id="answer" placeholder="Type your answer" />
+      <button type="button" id="submitBtn" onclick="submitRiddle()">Submit Answer</button>
+      <p id="feedback" aria-live="polite"></p>
+    </div>
+
+    <div class="box hidden" id="profileBox">
+      <h2>Your Profile</h2>
+      <p><strong>Name:</strong> <span id="profileName"></span></p>
+      <p><strong>Score:</strong> <span id="profileScore">0</span></p>
+      <button type="button" class="logout-btn" onclick="logout()">Log Out</button>
+    </div>
+  </div>
+
+  <script>
+    const correctAnswer = "German";
+    let user = { name: "", score: 0, solved: false, wrongAnswers: [] };
+
+    function startSession() {
+      const name = document.getElementById("nickname").value.trim();
+      if (!name) return alert("Please enter your nickname");
+
+      const saved = localStorage.getItem("riddlebox_" + name);
+      if (saved) {
+        user = JSON.parse(saved);
+        if (typeof user.solved === "undefined") user.solved = false;
+        if (!Array.isArray(user.wrongAnswers)) user.wrongAnswers = [];
+      } else {
+        user = { name: name, score: 0, solved: false, wrongAnswers: [] };
+        localStorage.setItem("riddlebox_" + name, JSON.stringify(user));
+      }
+
+      document.getElementById("profileName").textContent = user.name;
+      document.getElementById("profileScore").textContent = user.score;
+      document.getElementById("loginBox").classList.add("hidden");
+      document.getElementById("riddleBox").classList.remove("hidden");
+      document.getElementById("profileBox").classList.remove("hidden");
+      document.getElementById("feedback").textContent = "";
+      document.getElementById("answer").value = "";
+      updateInputState();
+    }
+
+    function submitRiddle() {
+      const answerInput = document.getElementById("answer");
+      const answer = answerInput.value.trim();
+      const answerLower = answer.toLowerCase();
+      const feedback = document.getElementById("feedback");
+
+      if (user.solved) {
+        feedback.textContent = "You already played.";
+        feedback.className = user.wrongAnswers.length > 0 ? "error" : "success";
+        return;
+      }
+
+      if (answerLower === correctAnswer.toLowerCase()) {
+        user.score += 1;
+        user.solved = true;
+        feedback.textContent = "Correct! The A350 is flown by the German pilot.";
+        feedback.className = "success";
+        document.getElementById("profileScore").textContent = user.score;
+      } else {
+        user.solved = true;
+        user.wrongAnswers.push(answer);
+        feedback.textContent = "Incorrect. Your answer (“" + answer + "”) was recorded. You can't play again.";
+        feedback.className = "error";
+      }
+
+      localStorage.setItem("riddlebox_" + user.name, JSON.stringify(user));
+      updateInputState();
+      sendScoreToGitHub(user.name, answer, answerLower === correctAnswer.toLowerCase());
+    }
+
+    function updateInputState() {
+      const answerInput = document.getElementById("answer");
+      const submitBtn = document.getElementById("submitBtn");
+      if (user.solved) {
+        answerInput.disabled = true;
+        submitBtn.disabled = true;
+        submitBtn.classList.add("disabled");
+      } else {
+        answerInput.disabled = false;
+        submitBtn.disabled = false;
+        submitBtn.classList.remove("disabled");
+      }
+    }
+
+    function logout() {
+      document.getElementById("loginBox").classList.remove("hidden");
+      document.getElementById("riddleBox").classList.add("hidden");
+      document.getElementById("profileBox").classList.add("hidden");
+      document.getElementById("nickname").value = "";
+      document.getElementById("answer").value = "";
+      document.getElementById("feedback").textContent = "";
+    }
+
+    // GitHub API push
+    const GITHUB_TOKEN = "TON_TOKEN_ICI"; // Ajoute ici ton token GitHub personnel
+    const REPO_OWNER = "walid60";
+    const REPO_NAME = "RiddleBox";
+    const FILE_PATH = "scoreboard.json";
+    const API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+
+    async function sendScoreToGitHub(nickname, answer, isCorrect) {
+      try {
+        const response = await fetch(API_URL, {
+          headers: {
+            Authorization: `token ${GITHUB_TOKEN}`,
+            Accept: "application/vnd.github.v3+json"
+          }
+        });
+        const data = await response.json();
+        const content = JSON.parse(atob(data.content));
+        const newEntry = {
+          name: nickname,
+          answer: answer,
+          correct: isCorrect,
+          date: new Date().toISOString()
+        };
+        content.push(newEntry);
+
+        const updated = await fetch(API_URL, {
+          method: "PUT",
+          headers: {
+            Authorization: `token ${GITHUB_TOKEN}`,
+            Accept: "application/vnd.github.v3+json"
+          },
+          body: JSON.stringify({
+            message: `Add score for ${nickname}`,
+            content: btoa(JSON.stringify(content, null, 2)),
+            sha: data.sha
+          })
+        });
+
+        if (updated.ok) {
+          console.log("Score sent to GitHub.");
+        } else {
+          console.error("GitHub update failed:", await updated.text());
+        }
+      } catch (error) {
+        console.error("Error sending score:", error);
+      }
+    }
+  </script>
+</body>
+</html>
