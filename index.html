@@ -35,8 +35,6 @@
       <h2>Riddle of the Week</h2>
       <p>There are five <strong>pilots</strong>, each operating a different <strong>aircraft</strong> in five <strong>hangars</strong> painted in different colors.
          Each pilot is from a different <strong>country</strong>, drinks a different <strong>beverage</strong>, and communicates in a different <strong>radio call sign</strong>.</p>
-      <p>No two pilots share the same aircraft, country, beverage, or call sign.</p>
-      <p><strong>Clues:</strong></p>
       <ul>
         <li>The French pilot is in the red hangar.</li>
         <li>The Brazilian pilot flies a cargo plane.</li>
@@ -68,19 +66,32 @@
     </div>
   </div>
 
+  <!-- FIREBASE -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
-    // === LOGIQUE DU JEU ===
-    const correctAnswer = "German";
+    const firebaseConfig = {
+      apiKey: "AIzaSyAeBMjUnQLuv33knZNf3-fmxxnZqJKG94E",
+      authDomain: "riddlebox-2bd1a.firebaseapp.com",
+      projectId: "riddlebox-2bd1a",
+      storageBucket: "riddlebox-2bd1a.appspot.com",
+      messagingSenderId: "441225090660",
+      appId: "1:441225090660:web:f5a6b39e45615c2d6e7171"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+
+  <script>
     let user = { name: "", score: 0, solved: false, wrongAnswers: [] };
 
     function startSession() {
       const name = document.getElementById("nickname").value.trim();
-const forbidden = ["admin", "null", "undefined", "system"];
-  if (name.length < 3 || name.length > 20 || !/^[a-zA-Z0-9]+$/.test(name) || forbidden.includes(name.toLowerCase())) {
-    alert("Invalid nickname. Use 3-20 letters or numbers only, no symbols or reserved words.");
-    return;
-  }
-      if (!name) return alert("Please enter your nickname");
+      const forbidden = ["admin", "null", "undefined", "system"];
+      if (name.length < 3 || name.length > 20 || !/^[a-zA-Z0-9]+$/.test(name) || forbidden.includes(name.toLowerCase())) {
+        alert("Invalid nickname. Use 3-20 letters or numbers only, no symbols or reserved words.");
+        return;
+      }
 
       const saved = localStorage.getItem("riddlebox_" + name);
       if (saved) {
@@ -105,7 +116,6 @@ const forbidden = ["admin", "null", "undefined", "system"];
     function submitRiddle() {
       const answerInput = document.getElementById("answer");
       const answer = answerInput.value.trim();
-      const answerLower = answer.toLowerCase();
       const feedback = document.getElementById("feedback");
 
       if (user.solved) {
@@ -115,76 +125,43 @@ const forbidden = ["admin", "null", "undefined", "system"];
         return;
       }
 
-      let isCorrect = (answerLower === correctAnswer.toLowerCase());
+      getCorrectAnswer().then(correctAnswer => {
+        const isCorrect = answer.toLowerCase() === correctAnswer.toLowerCase();
+        processAnswer(answer, isCorrect);
+      });
+    }
+
+    async function getCorrectAnswer() {
+      try {
+        const doc = await db.collection("settings").doc("riddle1").get();
+        return doc.exists ? doc.data().answer : "";
+      } catch (error) {
+        console.error("Erreur récupération de la réponse :", error);
+        return "";
+      }
+    }
+
+    function processAnswer(answer, isCorrect) {
+      const feedback = document.getElementById("feedback");
 
       if (isCorrect) {
         user.score += 1;
-        user.solved = true;
-        feedback.textContent = "Correct! The A350 is flown by the German pilot.";
+        feedback.textContent = "Correct! The A350 is flown by the correct pilot.";
         feedback.className = "success";
         document.getElementById("profileScore").textContent = user.score;
       } else {
-        user.solved = true;
         user.wrongAnswers.push(answer);
-        feedback.textContent = "Incorrect. Your answer (“" + answer + "”) was recorded. You can't play again.";
+        feedback.textContent = `Incorrect. Your answer (“${answer}”) was recorded. You can't play again.`;
         feedback.className = "error";
       }
 
+      user.solved = true;
       localStorage.setItem("riddlebox_" + user.name, JSON.stringify(user));
-      answerInput.value = "";
+      document.getElementById("answer").value = "";
       updateInputState();
-
-      // === ENVOI DANS FIREBASE ===
       sendToFirebase(user.name, answer, isCorrect);
     }
 
-    function updateInputState() {
-      const answerInput = document.getElementById("answer");
-      const submitBtn = document.getElementById("submitBtn");
-      if (user.solved) {
-        answerInput.disabled = true;
-        submitBtn.disabled = true;
-        submitBtn.classList.add("disabled");
-      } else {
-        answerInput.disabled = false;
-        submitBtn.disabled = false;
-        submitBtn.classList.remove("disabled");
-      }
-    }
-
-    function logout() {
-      document.getElementById("loginBox").classList.remove("hidden");
-      document.getElementById("riddleBox").classList.add("hidden");
-      document.getElementById("profileBox").classList.add("hidden");
-      document.getElementById("nickname").value = "";
-      document.getElementById("answer").value = "";
-      document.getElementById("feedback").textContent = "";
-    }
-  </script>
-
-  <!-- === FIREBASE SCRIPTS & LOGIQUE FIRESTORE === -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script>
-    // Configuration Firebase de ton projet
-    const firebaseConfig = {
-      apiKey: "AIzaSyAeBMjUnQLuv33knZNf3-fmxxnZqJKG94E",
-      authDomain: "riddlebox-2bd1a.firebaseapp.com",
-      projectId: "riddlebox-2bd1a",
-      storageBucket: "riddlebox-2bd1a.appspot.com",
-      messagingSenderId: "441225090660",
-      appId: "1:441225090660:web:f5a6b39e45615c2d6e7171"
-    };
-    // Initialisation Firebase
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    /**
-     * Envoie la réponse du joueur dans Firestore
-     * @param {string} nickname - Le pseudo du joueur
-     * @param {string} answer - La réponse proposée
-     * @param {boolean} isCorrect - true si la réponse est correcte
-     */
     function sendToFirebase(nickname, answer, isCorrect) {
       db.collection("scores").add({
         nickname: nickname,
@@ -198,6 +175,23 @@ const forbidden = ["admin", "null", "undefined", "system"];
       .catch((error) => {
         console.error("Erreur Firebase :", error);
       });
+    }
+
+    function updateInputState() {
+      const answerInput = document.getElementById("answer");
+      const submitBtn = document.getElementById("submitBtn");
+      answerInput.disabled = user.solved;
+      submitBtn.disabled = user.solved;
+      submitBtn.classList.toggle("disabled", user.solved);
+    }
+
+    function logout() {
+      document.getElementById("loginBox").classList.remove("hidden");
+      document.getElementById("riddleBox").classList.add("hidden");
+      document.getElementById("profileBox").classList.add("hidden");
+      document.getElementById("nickname").value = "";
+      document.getElementById("answer").value = "";
+      document.getElementById("feedback").textContent = "";
     }
   </script>
 </body>
