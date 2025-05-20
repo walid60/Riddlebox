@@ -75,6 +75,11 @@
 
     function startSession() {
       const name = document.getElementById("nickname").value.trim();
+const forbidden = ["admin", "null", "undefined", "system"];
+  if (name.length < 3 || name.length > 20 || !/^[a-zA-Z0-9]+$/.test(name) || forbidden.includes(name.toLowerCase())) {
+    alert("Invalid nickname. Use 3-20 letters or numbers only, no symbols or reserved words.");
+    return;
+  }
       if (!name) return alert("Please enter your nickname");
 
       const saved = localStorage.getItem("riddlebox_" + name);
