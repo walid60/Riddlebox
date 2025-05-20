@@ -16,6 +16,8 @@
     .error { color: red; }
     .logout-btn { margin-top: 1rem; background: #dc2626; }
     .disabled { background: #d1d5db !important; color: #6b7280 !important; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.5rem; border: 1px solid #ddd; text-align: left; }
   </style>
 </head>
 <body>
@@ -33,27 +35,9 @@
 
     <div class="box hidden" id="riddleBox">
       <h2>Riddle of the Week</h2>
-      <p>There are five <strong>pilots</strong>, each operating a different <strong>aircraft</strong> in five <strong>hangars</strong> painted in different colors.
-         Each pilot is from a different <strong>country</strong>, drinks a different <strong>beverage</strong>, and communicates in a different <strong>radio call sign</strong>.</p>
-      <ul>
-        <li>The French pilot is in the red hangar.</li>
-        <li>The Brazilian pilot flies a cargo plane.</li>
-        <li>The German drinks black coffee.</li>
-        <li>The blue hangar is immediately to the left of the white hangar.</li>
-        <li>The pilot in the green hangar drinks tea.</li>
-        <li>The one using the “Bravo” call sign flies a passenger jet.</li>
-        <li>The yellow hangar hosts the pilot using “Echo” call sign.</li>
-        <li>The pilot in the middle hangar drinks water.</li>
-        <li>The Canadian pilot is in the first hangar.</li>
-        <li>The pilot using “Charlie” is next to the one flying a helicopter.</li>
-        <li>The one with a fighter jet is next to the pilot using “Echo”.</li>
-        <li>The pilot with the “Alpha” call sign drinks soda.</li>
-        <li>The Japanese pilot uses the “Delta” call sign.</li>
-        <li>The Canadian is next to the blue hangar.</li>
-        <li>The pilot using “Charlie” is next to the one who drinks juice.</li>
-      </ul>
+      <div id="riddleText">Loading riddle...</div>
       <p><strong>Question:</strong> Which pilot flies the Airbus A350?</p>
-      <input type="text" id="answer" placeholder="Type your answer (e.g. Hangar)" />
+      <input type="text" id="answer" placeholder="Type your answer" />
       <button type="button" id="submitBtn" onclick="submitRiddle()">Submit Answer</button>
       <p id="feedback" aria-live="polite"></p>
     </div>
@@ -62,11 +46,20 @@
       <h2>Your Profile</h2>
       <p><strong>Name:</strong> <span id="profileName"></span></p>
       <p><strong>Score:</strong> <span id="profileScore">0</span></p>
-      <button type="button" class="logout-btn" onclick="logout()">Déconnexion</button>
+      <button type="button" class="logout-btn" onclick="logout()">Log Out</button>
+    </div>
+
+    <div class="box" id="rankingBox">
+      <h2>Leaderboard</h2>
+      <table id="rankingTable">
+        <thead>
+          <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
 
-  <!-- FIREBASE -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
@@ -80,118 +73,118 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-  </script>
 
-  <script>
-    let user = { name: "", score: 0, solved: false, wrongAnswers: [] };
+    let user = { name: "", score: 0, solved: false, wrongAnswers: [], tries: 0 };
+
+    function normalize(text) {
+      return text.toLowerCase().replace(/^the\\s+/, "").replace(/s$/, "").trim();
+    }
+
+    async function getCorrectAnswer() {
+      const doc = await db.collection("settings").doc("riddle1").get();
+      return doc.exists ? normalize(doc.data().answer) : "";
+    }
+
+    function loadRiddleText() {
+      db.collection("settings").doc("riddle1").get().then(doc => {
+        if (doc.exists && doc.data().question) {
+          document.getElementById("riddleText").innerHTML = doc.data().question;
+        } else {
+          document.getElementById("riddleText").innerText = "No riddle available.";
+        }
+      });
+    }
 
     function startSession() {
       const name = document.getElementById("nickname").value.trim();
       const forbidden = ["admin", "null", "undefined", "system"];
       if (name.length < 3 || name.length > 20 || !/^[a-zA-Z0-9]+$/.test(name) || forbidden.includes(name.toLowerCase())) {
-        alert("Invalid nickname. Use 3-20 letters or numbers only, no symbols or reserved words.");
+        alert("Invalid nickname.");
         return;
       }
 
       const saved = localStorage.getItem("riddlebox_" + name);
-      if (saved) {
-        user = JSON.parse(saved);
-        if (typeof user.solved === "undefined") user.solved = false;
-        if (!Array.isArray(user.wrongAnswers)) user.wrongAnswers = [];
-      } else {
-        user = { name: name, score: 0, solved: false, wrongAnswers: [] };
-        localStorage.setItem("riddlebox_" + name, JSON.stringify(user));
-      }
+      user = saved ? JSON.parse(saved) : { name: name, score: 0, solved: false, wrongAnswers: [], tries: 0 };
+      localStorage.setItem("riddlebox_" + name, JSON.stringify(user));
 
       document.getElementById("profileName").textContent = user.name;
       document.getElementById("profileScore").textContent = user.score;
       document.getElementById("loginBox").classList.add("hidden");
       document.getElementById("riddleBox").classList.remove("hidden");
       document.getElementById("profileBox").classList.remove("hidden");
-      document.getElementById("feedback").textContent = "";
-      document.getElementById("answer").value = "";
       updateInputState();
+      loadRiddleText();
+      loadRanking();
     }
 
     function submitRiddle() {
-      const answerInput = document.getElementById("answer");
-      const answer = answerInput.value.trim();
+      const answer = document.getElementById("answer").value.trim();
       const feedback = document.getElementById("feedback");
 
-      if (user.solved) {
-        feedback.textContent = "You already played.";
-        feedback.className = user.wrongAnswers.length > 0 ? "error" : "success";
-        answerInput.value = "";
+      if (user.solved || user.tries >= 2) {
+        feedback.textContent = "You have used all your attempts.";
+        feedback.className = "error";
         return;
       }
 
-      getCorrectAnswer().then(correctAnswer => {
-        const isCorrect = answer.toLowerCase() === correctAnswer.toLowerCase();
-        processAnswer(answer, isCorrect);
-      });
-    }
+      getCorrectAnswer().then(correct => {
+        const isCorrect = normalize(answer) === correct;
+        user.tries += 1;
+        if (isCorrect) {
+          user.solved = true;
+          user.score += 1;
+        } else {
+          user.wrongAnswers.push(answer);
+        }
 
-    async function getCorrectAnswer() {
-      try {
-        const doc = await db.collection("settings").doc("riddle1").get();
-        return doc.exists ? doc.data().answer : "";
-      } catch (error) {
-        console.error("Erreur récupération de la réponse :", error);
-        return "";
-      }
-    }
-
-    function processAnswer(answer, isCorrect) {
-      const feedback = document.getElementById("feedback");
-
-      if (isCorrect) {
-        user.score += 1;
-        feedback.textContent = "Correct! The A350 is flown by the correct pilot.";
-        feedback.className = "success";
+        localStorage.setItem("riddlebox_" + user.name, JSON.stringify(user));
+        updateInputState();
+        feedback.textContent = isCorrect ? "Correct!" : `Incorrect. You have used ${user.tries} of 2 attempts.`;
+        feedback.className = isCorrect ? "success" : "error";
+        sendToFirebase(user.name, answer, isCorrect);
         document.getElementById("profileScore").textContent = user.score;
-      } else {
-        user.wrongAnswers.push(answer);
-        feedback.textContent = `Incorrect. Your answer (“${answer}”) was recorded. You can't play again.`;
-        feedback.className = "error";
-      }
-
-      user.solved = true;
-      localStorage.setItem("riddlebox_" + user.name, JSON.stringify(user));
-      document.getElementById("answer").value = "";
-      updateInputState();
-      sendToFirebase(user.name, answer, isCorrect);
-    }
-
-    function sendToFirebase(nickname, answer, isCorrect) {
-      db.collection("scores").add({
-        nickname: nickname,
-        answer: answer,
-        correct: isCorrect,
-        timestamp: new Date()
-      })
-      .then(() => {
-        console.log("Réponse enregistrée dans Firebase !");
-      })
-      .catch((error) => {
-        console.error("Erreur Firebase :", error);
       });
     }
 
     function updateInputState() {
-      const answerInput = document.getElementById("answer");
-      const submitBtn = document.getElementById("submitBtn");
-      answerInput.disabled = user.solved;
-      submitBtn.disabled = user.solved;
-      submitBtn.classList.toggle("disabled", user.solved);
+      const input = document.getElementById("answer");
+      const button = document.getElementById("submitBtn");
+      const disabled = user.solved || user.tries >= 2;
+      input.disabled = disabled;
+      button.disabled = disabled;
+      button.classList.toggle("disabled", disabled);
     }
 
     function logout() {
       document.getElementById("loginBox").classList.remove("hidden");
       document.getElementById("riddleBox").classList.add("hidden");
       document.getElementById("profileBox").classList.add("hidden");
-      document.getElementById("nickname").value = "";
-      document.getElementById("answer").value = "";
-      document.getElementById("feedback").textContent = "";
+    }
+
+    function sendToFirebase(nickname, answer, correct) {
+      db.collection("scores").add({
+        nickname,
+        answer,
+        correct,
+        timestamp: new Date()
+      });
+    }
+
+    function loadRanking() {
+      const tbody = document.querySelector("#rankingTable tbody");
+      tbody.innerHTML = "";
+      db.collection("scores")
+        .orderBy("timestamp", "desc")
+        .limit(20)
+        .get()
+        .then(snapshot => {
+          snapshot.forEach(doc => {
+            const d = doc.data();
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${d.nickname}</td><td>${d.answer}</td><td>${d.correct ? "✔️" : "❌"}</td><td>${new Date(d.timestamp.toDate()).toLocaleString()}</td>`;
+            tbody.appendChild(tr);
+          });
+        });
     }
   </script>
 </body>
