@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -24,45 +23,38 @@
   <header>
     <h1>RiddleBox</h1>
     <p>The Weekly Brain Challenge</p>
-  </header>
-
-  <div class="container">
+  </header>  <div class="container">
     <div class="box" id="loginBox">
       <h2>Enter your nickname</h2>
       <input type="text" id="nickname" placeholder="Your nickname" />
       <button type="button" onclick="startSession()">Start</button>
-    </div>
+    </div><div class="box hidden" id="riddleBox">
+  <h2>Riddle of the Week</h2>
+  <div id="riddleText">Loading riddle...</div>
+  <p><strong>Question:</strong> Which pilot flies the Airbus A350?</p>
+  <input type="text" id="answer" placeholder="Type your answer" />
+  <button type="button" id="submitBtn" onclick="submitRiddle()">Submit Answer</button>
+  <p id="feedback" aria-live="polite"></p>
+</div>
 
-    <div class="box hidden" id="riddleBox">
-      <h2>Riddle of the Week</h2>
-      <div id="riddleText">Loading riddle...</div>
-      <p><strong>Question:</strong> Which pilot flies the Airbus A350?</p>
-      <input type="text" id="answer" placeholder="Type your answer" />
-      <button type="button" id="submitBtn" onclick="submitRiddle()">Submit Answer</button>
-      <p id="feedback" aria-live="polite"></p>
-    </div>
+<div class="box hidden" id="profileBox">
+  <h2>Your Profile</h2>
+  <p><strong>Name:</strong> <span id="profileName"></span></p>
+  <p><strong>Score:</strong> <span id="profileScore">0</span></p>
+  <button type="button" class="logout-btn" onclick="logout()">Log Out</button>
+</div>
 
-    <div class="box hidden" id="profileBox">
-      <h2>Your Profile</h2>
-      <p><strong>Name:</strong> <span id="profileName"></span></p>
-      <p><strong>Score:</strong> <span id="profileScore">0</span></p>
-      <button type="button" class="logout-btn" onclick="logout()">Log Out</button>
-    </div>
+<div class="box" id="rankingBox">
+  <h2>Leaderboard</h2>
+  <table id="rankingTable">
+    <thead>
+      <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
-    <div class="box" id="rankingBox">
-      <h2>Leaderboard</h2>
-      <table id="rankingTable">
-        <thead>
-          <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script>
+  </div>  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAeBMjUnQLuv33knZNf3-fmxxnZqJKG94E",
       authDomain: "riddlebox-2bd1a.firebaseapp.com",
@@ -77,22 +69,32 @@
     let user = { name: "", score: 0, solved: false, wrongAnswers: [], tries: 0 };
 
     function normalize(text) {
-      return text.toLowerCase().replace(/^the\\s+/, "").replace(/s$/, "").trim();
+      return text.toLowerCase().replace(/^the\s+/, "").replace(/s$/, "").trim();
+    }
+
+    function loadRiddleText() {
+      db.collection("settings").doc("riddle1").get()
+        .then(doc => {
+          if (doc.exists) {
+            const content = doc.data().question;
+            if (content) {
+              document.getElementById("riddleText").innerHTML = content;
+            } else {
+              document.getElementById("riddleText").innerText = "No question found.";
+            }
+          } else {
+            document.getElementById("riddleText").innerText = "Riddle not found.";
+          }
+        })
+        .catch(error => {
+          console.error("Error loading riddle:", error);
+          document.getElementById("riddleText").innerText = "Error loading riddle.";
+        });
     }
 
     async function getCorrectAnswer() {
       const doc = await db.collection("settings").doc("riddle1").get();
       return doc.exists ? normalize(doc.data().answer) : "";
-    }
-
-    function loadRiddleText() {
-      db.collection("settings").doc("riddle1").get().then(doc => {
-        if (doc.exists && doc.data().question) {
-          document.getElementById("riddleText").innerHTML = doc.data().question;
-        } else {
-          document.getElementById("riddleText").innerText = "No riddle available.";
-        }
-      });
     }
 
     function startSession() {
@@ -186,6 +188,5 @@
           });
         });
     }
-  </script>
-</body>
+  </script></body>
 </html>
