@@ -93,9 +93,21 @@
     }
 
     async function getCorrectAnswer() {
-      const doc = await db.collection("settings").doc("riddle1").get();
-      return doc.exists ? normalize(doc.data().answer) : "";
+  try {
+    const doc = await db.collection("settings").doc("riddle1").get();
+    if (doc.exists && doc.data().answer) {
+      const raw = doc.data().answer;
+      console.log("Correct answer loaded:", raw); // log visible dans console
+      return normalize(raw);
+    } else {
+      console.error("No 'answer' field found in Firestore.");
+      return "";
     }
+  } catch (e) {
+    console.error("Error fetching answer from Firestore:", e);
+    return "";
+  }
+}
 
     function startSession() {
       const name = document.getElementById("nickname").value.trim();
