@@ -134,6 +134,11 @@
     function submitRiddle() {
       const answer = document.getElementById("answer").value.trim();
       const feedback = document.getElementById("feedback");
+if (!answer) {
+  feedback.textContent = "Please enter an answer before submitting.";
+  feedback.className = "error";
+  return;
+}
 
       if (user.solved || user.tries >= 2) {
         feedback.textContent = "You have used all your attempts.";
