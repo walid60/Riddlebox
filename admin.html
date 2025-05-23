@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,56 +16,51 @@
     .danger { background: #dc2626; }
   </style>
 </head>
-<body>
-
-  <h1>RiddleBox Admin</h1>
-
-  <div class="box" id="loginBox">
+<body>  <h1>RiddleBox Admin</h1>  <div class="box" id="loginBox">
     <p>Enter admin password:</p>
     <input type="password" id="adminPass" placeholder="Password">
     <button onclick="checkPassword()">Access Admin</button>
     <p id="loginError" style="color:red;"></p>
-  </div>
+  </div>  <div class="box hidden" id="adminPanel"><div class="box">
+  <h2>Edit Riddle</h2>
+  <label>Question (HTML allowed):</label>
+  <textarea id="newQuestion"></textarea>
+  <label>Correct Answer:</label>
+  <input type="text" id="newAnswer" placeholder="Correct answer">
+  <button onclick="updateRiddle()">Save Riddle</button>
+</div>
 
-  <div class="box hidden" id="adminPanel">
+<div class="box">
+  <h2>Live Scores</h2>
+  <button onclick="loadScores()">Refresh Scores</button>
+  <table>
+    <thead>
+      <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
+    </thead>
+    <tbody id="scoreTable"></tbody>
+  </table>
+</div>
 
-    <div class="box">
-      <h2>Edit Riddle</h2>
-      <label>Question (HTML allowed):</label>
-      <textarea id="newQuestion"></textarea>
-      <label>Correct Answer:</label>
-      <input type="text" id="newAnswer" placeholder="Correct answer">
-      <button onclick="updateRiddle()">Save Riddle</button>
-    </div>
+<div class="box">
+  <h2>Reset Scores</h2>
+  <button class="danger" onclick="resetAllScores()">Delete All Scores</button>
+</div>
 
-    <div class="box">
-      <h2>Live Scores</h2>
-      <button onclick="loadScores()">Refresh Scores</button>
-      <table>
-        <thead>
-          <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
-        </thead>
-        <tbody id="scoreTable"></tbody>
-      </table>
-    </div>
+<div class="box">
+  <h2>Manage Players</h2>
 
-    <div class="box">
-      <h2>Reset Scores</h2>
-      <button class="danger" onclick="resetAllScores()">Delete All Scores</button>
-    </div>
+  <label>Choose a nickname to delete:</label>
+  <select id="nicknameList"></select>
+  <button class="danger" onclick="deleteSelectedName()">Delete This Player</button>
 
-    <div class="box">
-      <h2>Delete Specific Player</h2>
-      <input type="text" id="deleteName" placeholder="Enter exact nickname">
-      <button class="danger" onclick="deleteByName()">Delete Player's Score</button>
-    </div>
+  <hr style="margin: 2rem 0;" />
 
-  </div>
+  <label>Keep only this nickname (delete all others):</label>
+  <select id="keepOnlyList"></select>
+  <button class="danger" onclick="deleteAllExcept()">Delete All Except This Player</button>
+</div>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script>
+  </div>  <!-- Firebase -->  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAeBMjUnQLuv33knZNf3-fmxxnZqJKG94E",
       authDomain: "riddlebox-2bd1a.firebaseapp.com",
@@ -85,6 +79,7 @@
       if (input === adminPassword) {
         document.getElementById("loginBox").classList.add("hidden");
         document.getElementById("adminPanel").classList.remove("hidden");
+        loadNicknames();
       } else {
         document.getElementById("loginError").textContent = "Incorrect password.";
       }
@@ -137,31 +132,66 @@
       }).then(() => {
         alert("All scores deleted.");
         loadScores();
+        loadNicknames();
       });
     }
 
-    function deleteByName() {
-      const name = document.getElementById("deleteName").value.trim();
-      if (!name) {
-        alert("Please enter a name.");
-        return;
-      }
+    function loadNicknames() {
+      db.collection("scores").get().then(snapshot => {
+        const names = new Set();
+        snapshot.forEach(doc => {
+          names.add(doc.data().nickname);
+        });
 
-      db.collection("scores").where("nickname", "==", name).get()
+        const list1 = document.getElementById("nicknameList");
+        const list2 = document.getElementById("keepOnlyList");
+        list1.innerHTML = "";
+        list2.innerHTML = "";
+
+        names.forEach(nickname => {
+          const opt1 = document.createElement("option");
+          opt1.value = nickname;
+          opt1.textContent = nickname;
+          list1.appendChild(opt1);
+
+          const opt2 = opt1.cloneNode(true);
+          list2.appendChild(opt2);
+        });
+      });
+    }
+
+    function deleteSelectedName() {
+      const selected = document.getElementById("nicknameList").value;
+      if (!confirm(`Delete all scores for ${selected} ?`)) return;
+
+      db.collection("scores").where("nickname", "==", selected).get()
         .then(snapshot => {
-          if (snapshot.empty) {
-            alert("No scores found for this name.");
-            return;
-          }
           const batch = db.batch();
           snapshot.forEach(doc => batch.delete(doc.ref));
           return batch.commit();
         })
         .then(() => {
-          alert("Score(s) deleted.");
+          alert("Deleted.");
           loadScores();
+          loadNicknames();
         });
     }
-  </script>
-</body>
+
+    function deleteAllExcept() {
+      const keep = document.getElementById("keepOnlyList").value;
+      if (!confirm(`Delete all scores except for ${keep} ?`)) return;
+
+      db.collection("scores").get().then(snapshot => {
+        const batch = db.batch();
+        snapshot.forEach(doc => {
+          if (doc.data().nickname !== keep) batch.delete(doc.ref);
+        });
+        return batch.commit();
+      }).then(() => {
+        alert("All others deleted.");
+        loadScores();
+        loadNicknames();
+      });
+    }
+  </script></body>
 </html>
