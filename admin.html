@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RiddleBox Admin</title>
+  <style>
+    body { font-family: sans-serif; background: #f3f4f6; padding: 2rem; }
+    h1 { color: #111827; }
+    .hidden { display: none; }
+    .box { background: white; padding: 1.5rem; margin-bottom: 2rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+    input, textarea, button { width: 100%; margin-top: 0.5rem; padding: 0.6rem; font-size: 1rem; }
+    textarea { height: 150px; }
+    button { background: #111827; color: white; border: none; border-radius: 5px; margin-top: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.5rem; border: 1px solid #ccc; text-align: left; }
+    .danger { background: #dc2626; }
+  </style>
+</head>
+<body>
+
+  <h1>RiddleBox Admin</h1>
+
+  <div class="box" id="loginBox">
+    <p>Enter admin password:</p>
+    <input type="password" id="adminPass" placeholder="Password">
+    <button onclick="checkPassword()">Access Admin</button>
+    <p id="loginError" style="color:red;"></p>
+  </div>
+
+  <div class="box hidden" id="adminPanel">
+
+    <div class="box">
+      <h2>Edit Riddle</h2>
+      <label>Question (HTML allowed):</label>
+      <textarea id="newQuestion"></textarea>
+      <label>Correct Answer:</label>
+      <input type="text" id="newAnswer" placeholder="Correct answer">
+      <button onclick="updateRiddle()">Save Riddle</button>
+    </div>
+
+    <div class="box">
+      <h2>Live Scores</h2>
+      <button onclick="loadScores()">Refresh Scores</button>
+      <table>
+        <thead>
+          <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
+        </thead>
+        <tbody id="scoreTable"></tbody>
+      </table>
+    </div>
+
+    <div class="box">
+      <h2>Reset Scores</h2>
+      <button class="danger" onclick="resetAllScores()">Delete All Scores</button>
+    </div>
+
+    <div class="box">
+      <h2>Delete Specific Player</h2>
+      <input type="text" id="deleteName" placeholder="Enter exact nickname">
+      <button class="danger" onclick="deleteByName()">Delete Player's Score</button>
+    </div>
+
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAeBMjUnQLuv33knZNf3-fmxxnZqJKG94E",
+      authDomain: "riddlebox-2bd1a.firebaseapp.com",
+      projectId: "riddlebox-2bd1a",
+      storageBucket: "riddlebox-2bd1a.appspot.com",
+      messagingSenderId: "441225090660",
+      appId: "1:441225090660:web:f5a6b39e45615c2d6e7171"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const adminPassword = "admin123";
+
+    function checkPassword() {
+      const input = document.getElementById("adminPass").value.trim();
+      if (input === adminPassword) {
+        document.getElementById("loginBox").classList.add("hidden");
+        document.getElementById("adminPanel").classList.remove("hidden");
+      } else {
+        document.getElementById("loginError").textContent = "Incorrect password.";
+      }
+    }
+
+    function updateRiddle() {
+      const question = document.getElementById("newQuestion").value.trim();
+      const answer = document.getElementById("newAnswer").value.trim();
+
+      if (!question || !answer) {
+        alert("Please fill in both fields.");
+        return;
+      }
+
+      db.collection("settings").doc("riddle1").set({
+        question: question,
+        answer: answer
+      })
+      .then(() => alert("Riddle updated successfully."))
+      .catch(err => alert("Error: " + err));
+    }
+
+    function loadScores() {
+      const table = document.getElementById("scoreTable");
+      table.innerHTML = "";
+
+      db.collection("scores").orderBy("timestamp", "desc").limit(50).get()
+        .then(snapshot => {
+          snapshot.forEach(doc => {
+            const d = doc.data();
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${d.nickname}</td>
+              <td>${d.answer}</td>
+              <td>${d.correct ? "✔️" : "❌"}</td>
+              <td>${new Date(d.timestamp.toDate()).toLocaleString()}</td>
+            `;
+            table.appendChild(row);
+          });
+        });
+    }
+
+    function resetAllScores() {
+      if (!confirm("Are you sure you want to delete ALL scores?")) return;
+
+      db.collection("scores").get().then(snapshot => {
+        const batch = db.batch();
+        snapshot.forEach(doc => batch.delete(doc.ref));
+        return batch.commit();
+      }).then(() => {
+        alert("All scores deleted.");
+        loadScores();
+      });
+    }
+
+    function deleteByName() {
+      const name = document.getElementById("deleteName").value.trim();
+      if (!name) {
+        alert("Please enter a name.");
+        return;
+      }
+
+      db.collection("scores").where("nickname", "==", name).get()
+        .then(snapshot => {
+          if (snapshot.empty) {
+            alert("No scores found for this name.");
+            return;
+          }
+          const batch = db.batch();
+          snapshot.forEach(doc => batch.delete(doc.ref));
+          return batch.commit();
+        })
+        .then(() => {
+          alert("Score(s) deleted.");
+          loadScores();
+        });
+    }
+  </script>
+</body>
+</html>
