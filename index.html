@@ -109,7 +109,9 @@
   }
 }
 
-    function startSession() {
+    let user = { name: "", score: 0, solved: false, wrongAnswers: [], tries: 0 };
+
+function startSession() {
   const name = document.getElementById("nickname").value.trim();
   const forbidden = ["admin", "null", "undefined", "system"];
   const feedback = document.getElementById("feedback");
@@ -123,19 +125,15 @@
   const saved = localStorage.getItem("riddlebox_" + name);
   let userData = saved ? JSON.parse(saved) : { name, score: 0, solved: false, wrongAnswers: [], tries: 0 };
 
-  // Vérifier si ce joueur existe encore dans Firestore
   db.collection("scores").where("nickname", "==", name).get().then(snapshot => {
     if (snapshot.empty && userData.score > 0) {
-      // Ce joueur a été supprimé par l'admin
       alert("Your score was reset by the admin.");
       userData = { name, score: 0, solved: false, wrongAnswers: [], tries: 0 };
     }
 
-    // Mettre à jour le localStorage proprement
     localStorage.setItem("riddlebox_" + name, JSON.stringify(userData));
     user = userData;
 
-    // Mise à jour de l'interface
     document.getElementById("profileName").textContent = user.name;
     document.getElementById("profileScore").textContent = user.score;
     document.getElementById("loginBox").classList.add("hidden");
