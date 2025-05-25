@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>RiddleBox</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Google Fonts (Montserrat) -->
   <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
-  <!-- Ton style général -->
+  <!-- Main style -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,26 +16,26 @@
   </header>
   <main class="container">
     <div class="card" id="riddleBox">
-      <h2>Énigme du moment</h2>
+      <h2>Current riddle</h2>
       <div id="question" style="min-height:2em"></div>
     </div>
     <div class="card">
-      <h2>Proposer une réponse</h2>
+      <h2>Submit your answer</h2>
       <form id="answerForm" autocomplete="off">
-        <input type="text" id="nickname" placeholder="Ton pseudo" maxlength="30" required class="flip-card__input">
-        <input type="text" id="answer" placeholder="Ta réponse..." maxlength="100" required class="flip-card__input">
-        <button type="submit" class="flip-card__btn">Valider</button>
+        <input type="text" id="nickname" placeholder="Your nickname" maxlength="30" required class="flip-card__input">
+        <input type="text" id="answer" placeholder="Your answer..." maxlength="100" required class="flip-card__input">
+        <button type="submit" class="flip-card__btn">Submit</button>
       </form>
       <div id="message"></div>
     </div>
     <div class="card">
-      <h2>Dernières participations</h2>
+      <h2>Latest attempts</h2>
       <table>
         <thead>
           <tr>
-            <th>Pseudo</th>
-            <th>Réponse</th>
-            <th>Statut</th>
+            <th>Nickname</th>
+            <th>Answer</th>
+            <th>Status</th>
             <th>Date</th>
           </tr>
         </thead>
@@ -51,7 +51,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
-    // === CONFIG FIREBASE ===
+    // === FIREBASE CONFIG ===
     const firebaseConfig = {
       apiKey: "AIzaSyAeBMjUnQLuv33knZNf3-fmxxnZqJKG94E",
       authDomain: "riddlebox-2bd1a.firebaseapp.com",
@@ -63,23 +63,23 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // === Récupération de l'énigme en live ===
+    // === Load the current riddle live ===
     let currentAnswer = "";
     function loadRiddle() {
       db.collection("settings").doc("riddle1").onSnapshot(doc => {
         if (doc.exists) {
           const data = doc.data();
-          document.getElementById("question").innerHTML = data.question || "<em>En attente d'une énigme...</em>";
+          document.getElementById("question").innerHTML = data.question || "<em>Waiting for a riddle...</em>";
           currentAnswer = (data.answer || "").trim().toLowerCase();
         } else {
-          document.getElementById("question").innerHTML = "<em>En attente d'une énigme...</em>";
+          document.getElementById("question").innerHTML = "<em>Waiting for a riddle...</em>";
           currentAnswer = "";
         }
       });
     }
     loadRiddle();
 
-    // === Gérer la soumission du formulaire ===
+    // === Handle form submission ===
     document.getElementById("answerForm").addEventListener("submit", async function(e) {
       e.preventDefault();
       const nickname = document.getElementById("nickname").value.trim();
@@ -88,7 +88,7 @@
 
       msg.textContent = "";
       if (!nickname || !answer) {
-        msg.textContent = "Merci de remplir tous les champs.";
+        msg.textContent = "Please fill in all fields.";
         msg.className = "error";
         return;
       }
@@ -98,7 +98,7 @@
         isCorrect = true;
       }
 
-      // Ajoute la réponse à Firestore
+      // Add the answer to Firestore
       try {
         await db.collection("scores").add({
           nickname: nickname,
@@ -107,18 +107,18 @@
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
         msg.textContent = isCorrect
-          ? "Bravo, c'est la bonne réponse !"
-          : "Ta réponse a été enregistrée. Essaie encore !";
+          ? "Congratulations, that's the right answer!"
+          : "Your answer has been submitted. Try again!";
         msg.className = isCorrect ? "success" : "error";
         document.getElementById("answerForm").reset();
         loadScores();
       } catch (err) {
-        msg.textContent = "Erreur lors de l'envoi: " + err;
+        msg.textContent = "Error submitting your answer: " + err;
         msg.className = "error";
       }
     });
 
-    // === Affichage des derniers scores ===
+    // === Show latest scores ===
     function loadScores() {
       const table = document.getElementById("scoreTable");
       table.innerHTML = "";
@@ -142,7 +142,7 @@
         });
     }
     loadScores();
-    // Optionnel : reload auto toutes les 30s
+    // Optional: auto-reload every 30s
     setInterval(loadScores, 30000);
   </script>
 </body>
