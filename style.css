@@ -268,4 +268,67 @@ th {
     font-size: 1em;
     padding: 1.2em 0.5em 1em 0.5em;
   }
+:root {
+  --main-color: #323232;
+  --accent: #2d8cf0;
+  --bg-card: #fff;
+  --bg-main: #f5f6fa;
+}
+
+body {
+  background: var(--bg-main);
+  color: var(--main-color);
+  font-family: 'Montserrat', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+.riddle-question-block {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border-left: 5px solid var(--accent);
+  box-shadow: 0 3px 12px #2d8cf022;
+  padding: 1.5em 1.5em 1.5em 1.3em;
+  margin-bottom: 2em;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.riddle-question-block p {
+  margin: 0.6em 0;
+  font-size: 1.1em;
+}
+
+.riddle-clues-label {
+  color: var(--accent);
+  font-size: 1.08em;
+  margin-top: 1em;
+}
+
+ul.riddle-clues {
+  margin: 0.5em 0 1.2em 0.8em;
+  padding-left: 1.2em;
+  font-size: 1.07em;
+}
+
+ul.riddle-clues li {
+  margin-bottom: 0.32em;
+  line-height: 1.4;
+}
+
+.riddle-final-question {
+  margin-top: 1.3em;
+  font-size: 1.16em;
+  font-weight: bold;
+}
+
+/* Responsive pour mobiles */
+@media (max-width: 600px) {
+  .riddle-question-block {
+    padding: 1em 0.7em;
+    font-size: 1em;
+    max-width: 98vw;
+  }
+}
 }
