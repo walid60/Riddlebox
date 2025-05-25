@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -23,38 +24,41 @@
   <header>
     <h1>RiddleBox</h1>
     <p>The Weekly Brain Challenge</p>
-  </header>  <div class="container">
+  </header>
+  <div class="container">
     <div class="box" id="loginBox">
       <h2>Enter your nickname</h2>
       <input type="text" id="nickname" placeholder="Your nickname" />
       <button type="button" onclick="startSession()">Start</button>
-    </div><div class="box hidden" id="riddleBox">
-  <h2>Riddle of the Week</h2>
-  <div id="riddleText">Loading riddle...</div>
-  <p><strong>Question:</strong> Which pilot flies the Airbus A350?</p>
-  <input type="text" id="answer" placeholder="Type your answer" />
-  <button type="button" id="submitBtn" onclick="submitRiddle()">Submit Answer</button>
-  <p id="feedback" aria-live="polite"></p>
-</div>
-
-<div class="box hidden" id="profileBox">
-  <h2>Your Profile</h2>
-  <p><strong>Name:</strong> <span id="profileName"></span></p>
-  <p><strong>Score:</strong> <span id="profileScore">0</span></p>
-  <button type="button" class="logout-btn" onclick="logout()">Log Out</button>
-</div>
-
-<div class="box" id="rankingBox">
-  <h2>Leaderboard</h2>
-  <table id="rankingTable">
-    <thead>
-      <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-
-  </div>  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>  <script>
+    </div>
+    <div class="box hidden" id="riddleBox">
+      <h2>Riddle of the Week</h2>
+      <div id="riddleText">Loading riddle...</div>
+      <p><strong>Question:</strong> Which pilot flies the Airbus A350?</p>
+      <input type="text" id="answer" placeholder="Type your answer" />
+      <button type="button" id="submitBtn" onclick="submitRiddle()">Submit Answer</button>
+      <p id="feedback" aria-live="polite"></p>
+    </div>
+    <div class="box hidden" id="profileBox">
+      <h2>Your Profile</h2>
+      <p><strong>Name:</strong> <span id="profileName"></span></p>
+      <p><strong>Score:</strong> <span id="profileScore">0</span></p>
+      <button type="button" class="logout-btn" onclick="logout()">Log Out</button>
+    </div>
+    <div class="box" id="rankingBox">
+      <h2>Leaderboard</h2>
+      <table id="rankingTable">
+        <thead>
+          <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script>
+    // --- CONFIG FIREBASE ---
     const firebaseConfig = {
       apiKey: "AIzaSyAeBMjUnQLuv33knZNf3-fmxxnZqJKG94E",
       authDomain: "riddlebox-2bd1a.firebaseapp.com",
@@ -66,12 +70,15 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
+    // --- VARIABLES GLOBALES ---
     let user = { name: "", score: 0, solved: false, wrongAnswers: [], tries: 0 };
 
+    // --- OUTILS ---
     function normalize(text) {
       return text.toLowerCase().replace(/^the\s+/, "").replace(/s$/, "").trim();
     }
 
+    // --- CHARGEMENT DE L'ENIGME ---
     function loadRiddleText() {
       db.collection("settings").doc("riddle1").get()
         .then(doc => {
@@ -92,74 +99,71 @@
         });
     }
 
+    // --- RECUPERATION DE LA REPONSE ---
     async function getCorrectAnswer() {
-  try {
-    const doc = await db.collection("settings").doc("riddle1").get();
-    if (doc.exists && doc.data().answer) {
-      const raw = doc.data().answer;
-      console.log("Correct answer loaded:", raw); // log visible dans console
-      return normalize(raw);
-    } else {
-      console.error("No 'answer' field found in Firestore.");
-      return "";
-    }
-  } catch (e) {
-    console.error("Error fetching answer from Firestore:", e);
-    return "";
-  }
-}
-
-    let user = { name: "", score: 0, solved: false, wrongAnswers: [], tries: 0 };
-
-function startSession() {
-  const name = document.getElementById("nickname").value.trim();
-  const forbidden = ["admin", "null", "undefined", "system"];
-  const feedback = document.getElementById("feedback");
-
-  if (!name) return alert("Please enter your nickname");
-  if (name.length < 3 || name.length > 20 || !/^[a-zA-Z0-9]+$/.test(name) || forbidden.includes(name.toLowerCase())) {
-    alert("Invalid nickname.");
-    return;
-  }
-
-  const saved = localStorage.getItem("riddlebox_" + name);
-  let userData = saved ? JSON.parse(saved) : { name, score: 0, solved: false, wrongAnswers: [], tries: 0 };
-
-  db.collection("scores").where("nickname", "==", name).get().then(snapshot => {
-    if (snapshot.empty && userData.score > 0) {
-      alert("Your score was reset by the admin.");
-      userData = { name, score: 0, solved: false, wrongAnswers: [], tries: 0 };
+      try {
+        const doc = await db.collection("settings").doc("riddle1").get();
+        if (doc.exists && doc.data().answer) {
+          const raw = doc.data().answer;
+          return normalize(raw);
+        } else {
+          console.error("No 'answer' field found in Firestore.");
+          return "";
+        }
+      } catch (e) {
+        console.error("Error fetching answer from Firestore:", e);
+        return "";
+      }
     }
 
-    localStorage.setItem("riddlebox_" + name, JSON.stringify(userData));
-    user = userData;
+    // --- SESSION ---
+    function startSession() {
+      const name = document.getElementById("nickname").value.trim();
+      const forbidden = ["admin", "null", "undefined", "system"];
 
-    document.getElementById("profileName").textContent = user.name;
-    document.getElementById("profileScore").textContent = user.score;
-    document.getElementById("loginBox").classList.add("hidden");
-    document.getElementById("riddleBox").classList.remove("hidden");
-    document.getElementById("profileBox").classList.remove("hidden");
-    updateInputState();
-    loadRiddleText();
-    loadRanking();
-  });
-}
+      if (!name) return alert("Please enter your nickname");
+      if (name.length < 3 || name.length > 20 || !/^[a-zA-Z0-9]+$/.test(name) || forbidden.includes(name.toLowerCase())) {
+        alert("Invalid nickname.");
+        return;
+      }
 
+      const saved = localStorage.getItem("riddlebox_" + name);
+      let userData = saved ? JSON.parse(saved) : { name, score: 0, solved: false, wrongAnswers: [], tries: 0 };
+
+      db.collection("scores").where("nickname", "==", name).get().then(snapshot => {
+        if (snapshot.empty && userData.score > 0) {
+          alert("Your score was reset by the admin.");
+          userData = { name, score: 0, solved: false, wrongAnswers: [], tries: 0 };
+        }
+
+        localStorage.setItem("riddlebox_" + name, JSON.stringify(userData));
+        user = userData;
+
+        document.getElementById("profileName").textContent = user.name;
+        document.getElementById("profileScore").textContent = user.score;
+        document.getElementById("loginBox").classList.add("hidden");
+        document.getElementById("riddleBox").classList.remove("hidden");
+        document.getElementById("profileBox").classList.remove("hidden");
+        updateInputState();
+        loadRiddleText();
+        loadRanking();
+      });
+    }
+
+    // --- SOUMISSION DE LA REPONSE ---
     function submitRiddle() {
       const answer = document.getElementById("answer").value.trim();
       const feedback = document.getElementById("feedback");
-if (!answer) {
-  feedback.textContent = "Please enter an answer before submitting.";
-  feedback.className = "error";
-  return;
-}
-
+      if (!answer) {
+        feedback.textContent = "Please enter an answer before submitting.";
+        feedback.className = "error";
+        return;
+      }
       if (user.solved || user.tries >= 2) {
         feedback.textContent = "You have used all your attempts.";
         feedback.className = "error";
         return;
       }
-
       getCorrectAnswer().then(correct => {
         const isCorrect = normalize(answer) === correct;
         user.tries += 1;
@@ -176,11 +180,11 @@ if (!answer) {
         feedback.className = isCorrect ? "success" : "error";
         sendToFirebase(user.name, answer, isCorrect);
         document.getElementById("profileScore").textContent = user.score;
+        loadRanking();
       });
     }
 
-<a href="admin.html" style="display: none;" id="hiddenAdminLink">Admin</a>
-
+    // --- MISE A JOUR DES CHAMPS ---
     function updateInputState() {
       const input = document.getElementById("answer");
       const button = document.getElementById("submitBtn");
@@ -190,12 +194,17 @@ if (!answer) {
       button.classList.toggle("disabled", disabled);
     }
 
+    // --- DECONNEXION ---
     function logout() {
       document.getElementById("loginBox").classList.remove("hidden");
       document.getElementById("riddleBox").classList.add("hidden");
       document.getElementById("profileBox").classList.add("hidden");
+      document.getElementById("nickname").value = "";
+      document.getElementById("answer").value = "";
+      document.getElementById("feedback").textContent = "";
     }
 
+    // --- ENREGISTREMENT FIREBASE ---
     function sendToFirebase(nickname, answer, correct) {
       db.collection("scores").add({
         nickname,
@@ -205,6 +214,7 @@ if (!answer) {
       });
     }
 
+    // --- CLASSEMENT ---
     function loadRanking() {
       const tbody = document.querySelector("#rankingTable tbody");
       tbody.innerHTML = "";
@@ -216,11 +226,17 @@ if (!answer) {
           snapshot.forEach(doc => {
             const d = doc.data();
             const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${d.nickname}</td><td>${d.answer}</td><td>${d.correct ? "✔️" : "❌"}</td><td>${new Date(d.timestamp.toDate()).toLocaleString()}</td>`;
+            tr.innerHTML = `<td>${d.nickname}</td><td>${d.answer}</td><td>${d.correct ? "✔️" : "❌"}</td><td>${d.timestamp && d.timestamp.toDate ? new Date(d.timestamp.toDate()).toLocaleString() : ""}</td>`;
             tbody.appendChild(tr);
           });
         });
     }
 
-  </script></body>
+    // --- CHARGEMENT AU DEMARRAGE ---
+    document.addEventListener("DOMContentLoaded", function() {
+      loadRiddleText();
+      loadRanking();
+    });
+  </script>
+</body>
 </html>
