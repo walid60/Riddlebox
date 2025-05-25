@@ -1,67 +1,67 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>RiddleBox Admin</title>
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
-  <!-- Ton style général -->
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body { font-family: sans-serif; background: #f3f4f6; padding: 2rem; }
+    h1 { color: #111827; }
+    .hidden { display: none; }
+    .box { background: white; padding: 1.5rem; margin-bottom: 2rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); }
+    input, textarea, button { width: 100%; margin-top: 0.5rem; padding: 0.6rem; font-size: 1rem; }
+    textarea { height: 150px; }
+    button { background: #111827; color: white; border: none; border-radius: 5px; margin-top: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.5rem; border: 1px solid #ccc; text-align: left; }
+    .danger { background: #dc2626; }
+  </style>
 </head>
 <body>
-  <header>
-    <h1>🔑 Admin RiddleBox</h1>
-    <p class="subtitle">Gestion des énigmes et des joueurs</p>
-  </header>
-  <main class="container">
-    <div class="card" id="loginBox">
-      <h2>Connexion admin</h2>
-      <input type="email" id="adminEmail" placeholder="Email" autocomplete="username" class="flip-card__input" />
-      <input type="password" id="adminPass" placeholder="Mot de passe" autocomplete="current-password" class="flip-card__input" />
-      <button class="flip-card__btn" onclick="login()">Se connecter</button>
-      <p id="loginError" class="error"></p>
+  <h1>RiddleBox Admin</h1>
+  <div class="box" id="loginBox">
+    <p>Sign in (Email/Password)</p>
+    <input type="email" id="adminEmail" placeholder="Email" autocomplete="username" />
+    <input type="password" id="adminPass" placeholder="Password" autocomplete="current-password" />
+    <button onclick="login()">Login</button>
+    <p id="loginError" style="color:red;"></p>
+  </div>
+  <div class="box hidden" id="adminPanel">
+    <button style="float:right;" onclick="logout()">Log out</button>
+    <div style="clear:both"></div>
+    <div class="box">
+      <h2>Edit Riddle</h2>
+      <label>Question (HTML allowed):</label>
+      <textarea id="newQuestion"></textarea>
+      <label>Correct Answer:</label>
+      <input type="text" id="newAnswer" placeholder="Correct answer">
+      <button onclick="updateRiddle()">Save Riddle</button>
     </div>
-    <div class="card hidden" id="adminPanel">
-      <button style="float:right;" class="flip-card__btn" onclick="logout()">Déconnexion</button>
-      <div style="clear:both"></div>
-      <div class="card">
-        <h2>Modifier l'énigme</h2>
-        <label>Question (HTML autorisé):</label>
-        <textarea id="newQuestion" class="flip-card__input" rows="3" required></textarea>
-        <label>Réponse attendue :</label>
-        <input type="text" id="newAnswer" class="flip-card__input" required>
-        <button class="flip-card__btn" onclick="updateRiddle()">Enregistrer</button>
-      </div>
-      <div class="card">
-        <h2>Scores récents</h2>
-        <button class="flip-card__btn" onclick="loadScores()">Rafraîchir</button>
-        <table>
-          <thead>
-            <tr><th>Pseudo</th><th>Réponse</th><th>Correct</th><th>Date</th></tr>
-          </thead>
-          <tbody id="scoreTable"></tbody>
-        </table>
-      </div>
-      <div class="card">
-        <h2>Remise à zéro scores</h2>
-        <button class="flip-card__btn danger" onclick="resetAllScores()">Supprimer tous les scores</button>
-      </div>
-      <div class="card">
-        <h2>Gestion des joueurs</h2>
-        <label>Supprimer un pseudo :</label>
-        <select id="nicknameList" class="flip-card__input"></select>
-        <button class="flip-card__btn danger" onclick="deleteSelectedName()">Supprimer ce joueur</button>
-        <hr style="margin: 2rem 0;" />
-        <label>Garder seulement ce pseudo :</label>
-        <select id="keepOnlyList" class="flip-card__input"></select>
-        <button class="flip-card__btn danger" onclick="deleteAllExcept()">Supprimer tous sauf ce joueur</button>
-      </div>
+    <div class="box">
+      <h2>Live Scores</h2>
+      <button onclick="loadScores()">Refresh Scores</button>
+      <table>
+        <thead>
+          <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
+        </thead>
+        <tbody id="scoreTable"></tbody>
+      </table>
     </div>
-  </main>
-  <footer>
-    <p>&copy; 2025 RiddleBox – Admin</p>
-  </footer>
+    <div class="box">
+      <h2>Reset Scores</h2>
+      <button class="danger" onclick="resetAllScores()">Delete All Scores</button>
+    </div>
+    <div class="box">
+      <h2>Manage Players</h2>
+      <label>Choose a nickname to delete:</label>
+      <select id="nicknameList"></select>
+      <button class="danger" onclick="deleteSelectedName()">Delete This Player</button>
+      <hr style="margin: 2rem 0;" />
+      <label>Keep only this nickname (delete all others):</label>
+      <select id="keepOnlyList"></select>
+      <button class="danger" onclick="deleteAllExcept()">Delete All Except This Player</button>
+    </div>
+  </div>
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -80,7 +80,7 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // === REMPLACE PAR TON UID ADMIN !!! ===
+    // === REMPLACE PAR TON UID !!! ===
     const ADMIN_UID = "[TON_UID_ADMIN]"; // Remplace par ton UID obtenu dans la console Firebase
 
     function login() {
@@ -97,7 +97,7 @@
             loadRiddleForEdit();
           } else {
             logout();
-            document.getElementById("loginError").textContent = "Vous n'êtes pas autorisé.";
+            document.getElementById("loginError").textContent = "You are not authorized.";
           }
         })
         .catch(err => {
@@ -131,15 +131,15 @@
       const question = document.getElementById("newQuestion").value.trim();
       const answer = document.getElementById("newAnswer").value.trim();
       if (!question || !answer) {
-        alert("Veuillez remplir la question ET la réponse.");
+        alert("Please fill in both fields.");
         return;
       }
       db.collection("settings").doc("riddle1").set({
         question: question,
         answer: answer
       })
-      .then(() => alert("Énigme enregistrée."))
-      .catch(err => alert("Erreur : " + err));
+      .then(() => alert("Riddle updated successfully."))
+      .catch(err => alert("Error: " + err));
     }
 
     function loadRiddleForEdit() {
@@ -177,7 +177,7 @@
     }
 
     function resetAllScores() {
-      if (!confirm("Supprimer TOUS les scores ?")) return;
+      if (!confirm("Are you sure you want to delete ALL scores?")) return;
       db.collection("scores").get().then(async snapshot => {
         const batches = [];
         let batch = db.batch();
@@ -193,11 +193,11 @@
         });
         if (opCount > 0) batches.push(batch.commit());
         await Promise.all(batches);
-        alert("Tous les scores sont supprimés.");
+        alert("All scores deleted.");
         loadScores();
         loadNicknames();
       }).catch(err => {
-        alert("Erreur suppression : " + err);
+        alert("Error deleting: " + err);
         console.error(err);
       });
     }
@@ -225,11 +225,11 @@
 
     function deleteSelectedName() {
       const selected = document.getElementById("nicknameList").value;
-      if (!confirm(`Supprimer tous les scores pour ${selected} ?`)) return;
+      if (!confirm(`Delete all scores for ${selected} ?`)) return;
       db.collection("scores").where("nickname", "==", selected).get()
         .then(async snapshot => {
           if (snapshot.empty) {
-            alert("Aucun score trouvé pour ce pseudo.");
+            alert("No scores found for this nickname.");
             return;
           }
           const batches = [];
@@ -246,19 +246,19 @@
           });
           if (opCount > 0) batches.push(batch.commit());
           await Promise.all(batches);
-          alert("Supprimé.");
+          alert("Deleted.");
           loadScores();
           loadNicknames();
         })
         .catch(err => {
-          alert("Erreur suppression : " + err);
+          alert("Error deleting: " + err);
           console.error(err);
         });
     }
 
     function deleteAllExcept() {
       const keep = document.getElementById("keepOnlyList").value;
-      if (!confirm(`Supprimer tous les scores sauf pour ${keep} ?`)) return;
+      if (!confirm(`Delete all scores except for ${keep} ?`)) return;
       db.collection("scores").get().then(async snapshot => {
         const batches = [];
         let batch = db.batch();
@@ -276,12 +276,12 @@
         });
         if (opCount > 0) batches.push(batch.commit());
         await Promise.all(batches);
-        alert("Suppression effectuée.");
+        alert("All others deleted.");
         loadScores();
         loadNicknames();
       })
       .catch(err => {
-        alert("Erreur suppression : " + err);
+        alert("Error deleting: " + err);
         console.error(err);
       });
     }
