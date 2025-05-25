@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Administration – RiddleBox</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RiddleBox Admin</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
   <!-- Ton style général -->
@@ -12,44 +12,60 @@
 <body>
   <header>
     <h1>🔑 Admin RiddleBox</h1>
-    <p class="subtitle">Gestion des énigmes et participations</p>
+    <p class="subtitle">Gestion des énigmes et des joueurs</p>
   </header>
   <main class="container">
-    <div class="card">
-      <h2>Énigme en cours</h2>
-      <form id="riddleForm" autocomplete="off">
-        <label for="question">Question :</label>
-        <textarea id="question" class="flip-card__input" rows="3" required></textarea>
-        <label for="answer">Réponse attendue :</label>
-        <input type="text" id="answer" class="flip-card__input" required>
-        <button type="submit" class="flip-card__btn">Enregistrer</button>
-        <span id="riddleMsg"></span>
-      </form>
+    <div class="card" id="loginBox">
+      <h2>Connexion admin</h2>
+      <input type="email" id="adminEmail" placeholder="Email" autocomplete="username" class="flip-card__input" />
+      <input type="password" id="adminPass" placeholder="Mot de passe" autocomplete="current-password" class="flip-card__input" />
+      <button class="flip-card__btn" onclick="login()">Se connecter</button>
+      <p id="loginError" class="error"></p>
     </div>
-
-    <div class="card">
-      <h2>Participations récentes</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Pseudo</th>
-            <th>Réponse</th>
-            <th>Statut</th>
-            <th>Date</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="adminScores"></tbody>
-      </table>
+    <div class="card hidden" id="adminPanel">
+      <button style="float:right;" class="flip-card__btn" onclick="logout()">Déconnexion</button>
+      <div style="clear:both"></div>
+      <div class="card">
+        <h2>Modifier l'énigme</h2>
+        <label>Question (HTML autorisé):</label>
+        <textarea id="newQuestion" class="flip-card__input" rows="3" required></textarea>
+        <label>Réponse attendue :</label>
+        <input type="text" id="newAnswer" class="flip-card__input" required>
+        <button class="flip-card__btn" onclick="updateRiddle()">Enregistrer</button>
+      </div>
+      <div class="card">
+        <h2>Scores récents</h2>
+        <button class="flip-card__btn" onclick="loadScores()">Rafraîchir</button>
+        <table>
+          <thead>
+            <tr><th>Pseudo</th><th>Réponse</th><th>Correct</th><th>Date</th></tr>
+          </thead>
+          <tbody id="scoreTable"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Remise à zéro scores</h2>
+        <button class="flip-card__btn danger" onclick="resetAllScores()">Supprimer tous les scores</button>
+      </div>
+      <div class="card">
+        <h2>Gestion des joueurs</h2>
+        <label>Supprimer un pseudo :</label>
+        <select id="nicknameList" class="flip-card__input"></select>
+        <button class="flip-card__btn danger" onclick="deleteSelectedName()">Supprimer ce joueur</button>
+        <hr style="margin: 2rem 0;" />
+        <label>Garder seulement ce pseudo :</label>
+        <select id="keepOnlyList" class="flip-card__input"></select>
+        <button class="flip-card__btn danger" onclick="deleteAllExcept()">Supprimer tous sauf ce joueur</button>
+      </div>
     </div>
   </main>
   <footer>
     <p>&copy; 2025 RiddleBox – Admin</p>
   </footer>
-
-  <!-- Firebase SDK -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script>
     // === CONFIG FIREBASE ===
     const firebaseConfig = {
@@ -62,48 +78,85 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
 
-    // === Charger énigme actuelle ===
-    function loadRiddle() {
-      db.collection("settings").doc("riddle1").get().then(doc => {
-        if (doc.exists) {
-          const data = doc.data();
-          document.getElementById("question").value = data.question || "";
-          document.getElementById("answer").value = data.answer || "";
-        }
-      });
+    // === REMPLACE PAR TON UID ADMIN !!! ===
+    const ADMIN_UID = "[TON_UID_ADMIN]"; // Remplace par ton UID obtenu dans la console Firebase
+
+    function login() {
+      const email = document.getElementById("adminEmail").value.trim();
+      const pass = document.getElementById("adminPass").value.trim();
+      document.getElementById("loginError").textContent = "";
+      auth.signInWithEmailAndPassword(email, pass)
+        .then(userCred => {
+          if (userCred.user.uid === ADMIN_UID) {
+            document.getElementById("loginBox").classList.add("hidden");
+            document.getElementById("adminPanel").classList.remove("hidden");
+            loadNicknames();
+            loadScores();
+            loadRiddleForEdit();
+          } else {
+            logout();
+            document.getElementById("loginError").textContent = "Vous n'êtes pas autorisé.";
+          }
+        })
+        .catch(err => {
+          document.getElementById("loginError").textContent = err.message;
+        });
     }
-    loadRiddle();
 
-    // === Enregistrer l’énigme ===
-    document.getElementById("riddleForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
-      const question = document.getElementById("question").value.trim();
-      const answer = document.getElementById("answer").value.trim();
-      const msg = document.getElementById("riddleMsg");
-      msg.textContent = "";
+    function logout() {
+      auth.signOut();
+      document.getElementById("adminPanel").classList.add("hidden");
+      document.getElementById("loginBox").classList.remove("hidden");
+      document.getElementById("adminPass").value = "";
+      document.getElementById("adminEmail").value = "";
+    }
 
-      if (!question || !answer) {
-        msg.textContent = "Complétez la question ET la réponse.";
-        msg.className = "error";
-        return;
-      }
-
-      try {
-        await db.collection("settings").doc("riddle1").set({ question, answer });
-        msg.textContent = "Énigme enregistrée !";
-        msg.className = "success";
-      } catch(err) {
-        msg.textContent = "Erreur : " + err;
-        msg.className = "error";
+    // === SECURE AUTO-REDIRECT ===
+    auth.onAuthStateChanged(user => {
+      if (user && user.uid === ADMIN_UID) {
+        document.getElementById("loginBox").classList.add("hidden");
+        document.getElementById("adminPanel").classList.remove("hidden");
+        loadNicknames();
+        loadScores();
+        loadRiddleForEdit();
+      } else {
+        document.getElementById("adminPanel").classList.add("hidden");
+        document.getElementById("loginBox").classList.remove("hidden");
       }
     });
 
-    // === Afficher participations ===
+    function updateRiddle() {
+      const question = document.getElementById("newQuestion").value.trim();
+      const answer = document.getElementById("newAnswer").value.trim();
+      if (!question || !answer) {
+        alert("Veuillez remplir la question ET la réponse.");
+        return;
+      }
+      db.collection("settings").doc("riddle1").set({
+        question: question,
+        answer: answer
+      })
+      .then(() => alert("Énigme enregistrée."))
+      .catch(err => alert("Erreur : " + err));
+    }
+
+    function loadRiddleForEdit() {
+      db.collection("settings").doc("riddle1").get()
+        .then(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            document.getElementById("newQuestion").value = data.question || "";
+            document.getElementById("newAnswer").value = data.answer || "";
+          }
+        });
+    }
+
     function loadScores() {
-      const tbody = document.getElementById("adminScores");
-      tbody.innerHTML = "";
-      db.collection("scores").orderBy("timestamp", "desc").limit(25).get()
+      const table = document.getElementById("scoreTable");
+      table.innerHTML = "";
+      db.collection("scores").orderBy("timestamp", "desc").limit(50).get()
         .then(snapshot => {
           snapshot.forEach(doc => {
             const d = doc.data();
@@ -111,26 +164,126 @@
             if (d.timestamp && d.timestamp.toDate) {
               dateStr = new Date(d.timestamp.toDate()).toLocaleString();
             }
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${d.nickname || ""}</td>
-              <td>${d.answer || ""}</td>
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${d.nickname}</td>
+              <td>${d.answer}</td>
               <td>${d.correct ? "✔️" : "❌"}</td>
               <td>${dateStr}</td>
-              <td><button class="flip-card__btn" style="padding:0.3em 1em" onclick="deleteScore('${doc.id}')">Supprimer</button></td>
             `;
-            tbody.appendChild(tr);
+            table.appendChild(row);
           });
         });
     }
-    loadScores();
-    setInterval(loadScores, 30000);
 
-    // === Supprimer une participation ===
-    window.deleteScore = function(id) {
-      if (confirm("Supprimer cette participation ?")) {
-        db.collection("scores").doc(id).delete().then(loadScores);
-      }
+    function resetAllScores() {
+      if (!confirm("Supprimer TOUS les scores ?")) return;
+      db.collection("scores").get().then(async snapshot => {
+        const batches = [];
+        let batch = db.batch();
+        let opCount = 0;
+        snapshot.forEach(doc => {
+          batch.delete(doc.ref);
+          opCount++;
+          if (opCount === 499) {
+            batches.push(batch.commit());
+            batch = db.batch();
+            opCount = 0;
+          }
+        });
+        if (opCount > 0) batches.push(batch.commit());
+        await Promise.all(batches);
+        alert("Tous les scores sont supprimés.");
+        loadScores();
+        loadNicknames();
+      }).catch(err => {
+        alert("Erreur suppression : " + err);
+        console.error(err);
+      });
+    }
+
+    function loadNicknames() {
+      db.collection("scores").get().then(snapshot => {
+        const names = new Set();
+        snapshot.forEach(doc => {
+          names.add(doc.data().nickname);
+        });
+        const list1 = document.getElementById("nicknameList");
+        const list2 = document.getElementById("keepOnlyList");
+        list1.innerHTML = "";
+        list2.innerHTML = "";
+        names.forEach(nickname => {
+          const opt1 = document.createElement("option");
+          opt1.value = nickname;
+          opt1.textContent = nickname;
+          list1.appendChild(opt1);
+          const opt2 = opt1.cloneNode(true);
+          list2.appendChild(opt2);
+        });
+      });
+    }
+
+    function deleteSelectedName() {
+      const selected = document.getElementById("nicknameList").value;
+      if (!confirm(`Supprimer tous les scores pour ${selected} ?`)) return;
+      db.collection("scores").where("nickname", "==", selected).get()
+        .then(async snapshot => {
+          if (snapshot.empty) {
+            alert("Aucun score trouvé pour ce pseudo.");
+            return;
+          }
+          const batches = [];
+          let batch = db.batch();
+          let opCount = 0;
+          snapshot.forEach(doc => {
+            batch.delete(doc.ref);
+            opCount++;
+            if (opCount === 499) {
+              batches.push(batch.commit());
+              batch = db.batch();
+              opCount = 0;
+            }
+          });
+          if (opCount > 0) batches.push(batch.commit());
+          await Promise.all(batches);
+          alert("Supprimé.");
+          loadScores();
+          loadNicknames();
+        })
+        .catch(err => {
+          alert("Erreur suppression : " + err);
+          console.error(err);
+        });
+    }
+
+    function deleteAllExcept() {
+      const keep = document.getElementById("keepOnlyList").value;
+      if (!confirm(`Supprimer tous les scores sauf pour ${keep} ?`)) return;
+      db.collection("scores").get().then(async snapshot => {
+        const batches = [];
+        let batch = db.batch();
+        let opCount = 0;
+        snapshot.forEach(doc => {
+          if (doc.data().nickname !== keep) {
+            batch.delete(doc.ref);
+            opCount++;
+            if (opCount === 499) {
+              batches.push(batch.commit());
+              batch = db.batch();
+              opCount = 0;
+            }
+          }
+        });
+        if (opCount > 0) batches.push(batch.commit());
+        await Promise.all(batches);
+        alert("Suppression effectuée.");
+        loadScores();
+        loadNicknames();
+      })
+      .catch(err => {
+        alert("Erreur suppression : " + err);
+        console.error(err);
+      });
     }
   </script>
 </body>
