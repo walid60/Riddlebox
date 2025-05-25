@@ -1,64 +1,57 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
   <title>RiddleBox</title>
-  <style>
-    body { font-family: sans-serif; margin: 0; padding: 0; background: #f9fafb; }
-    header { background: #111827; color: white; padding: 1rem; text-align: center; }
-    .container { padding: 2rem; max-width: 800px; margin: auto; }
-    .box { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.05); margin-bottom: 2rem; }
-    input, button { padding: 10px; width: 100%; margin-top: 1rem; font-size: 16px; }
-    button { background: #111827; color: white; border: none; border-radius: 5px; }
-    .hidden { display: none; }
-    .success { color: green; }
-    .error { color: red; }
-    .logout-btn { margin-top: 1rem; background: #dc2626; }
-    .disabled { background: #d1d5db !important; color: #6b7280 !important; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { padding: 0.5rem; border: 1px solid #ddd; text-align: left; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Google Fonts (Montserrat) -->
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
+  <!-- Ton style général -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
-    <h1>RiddleBox</h1>
-    <p>The Weekly Brain Challenge</p>
+    <h1>🧩 RiddleBox</h1>
+    <p class="subtitle">Le défi cérébral de la semaine</p>
   </header>
-  <div class="container">
-    <div class="box" id="loginBox">
-      <h2>Enter your nickname</h2>
-      <input type="text" id="nickname" placeholder="Your nickname" />
-      <button type="button" onclick="startSession()">Start</button>
+  <main class="container">
+    <div class="card" id="riddleBox">
+      <h2>Énigme du moment</h2>
+      <div id="question" style="min-height:2em"></div>
     </div>
-    <div class="box hidden" id="riddleBox">
-      <h2>Riddle of the Week</h2>
-      <div id="riddleText">Loading riddle...</div>
-      <p><strong>Question:</strong> Which pilot flies the Airbus A350?</p>
-      <input type="text" id="answer" placeholder="Type your answer" />
-      <button type="button" id="submitBtn" onclick="submitRiddle()">Submit Answer</button>
-      <p id="feedback" aria-live="polite"></p>
+    <div class="card">
+      <h2>Proposer une réponse</h2>
+      <form id="answerForm" autocomplete="off">
+        <input type="text" id="nickname" placeholder="Ton pseudo" maxlength="30" required class="flip-card__input">
+        <input type="text" id="answer" placeholder="Ta réponse..." maxlength="100" required class="flip-card__input">
+        <button type="submit" class="flip-card__btn">Valider</button>
+      </form>
+      <div id="message"></div>
     </div>
-    <div class="box hidden" id="profileBox">
-      <h2>Your Profile</h2>
-      <p><strong>Name:</strong> <span id="profileName"></span></p>
-      <p><strong>Score:</strong> <span id="profileScore">0</span></p>
-      <button type="button" class="logout-btn" onclick="logout()">Log Out</button>
-    </div>
-    <div class="box" id="rankingBox">
-      <h2>Leaderboard</h2>
-      <table id="rankingTable">
+    <div class="card">
+      <h2>Dernières participations</h2>
+      <table>
         <thead>
-          <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
+          <tr>
+            <th>Pseudo</th>
+            <th>Réponse</th>
+            <th>Statut</th>
+            <th>Date</th>
+          </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="scoreTable"></tbody>
       </table>
     </div>
-  </div>
+  </main>
+  <footer>
+    <p>&copy; 2025 RiddleBox – Made with ❤️ by Walid</p>
+  </footer>
+
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script>
-    // --- CONFIG FIREBASE ---
+    // === CONFIG FIREBASE ===
     const firebaseConfig = {
       apiKey: "AIzaSyAeBMjUnQLuv33knZNf3-fmxxnZqJKG94E",
       authDomain: "riddlebox-2bd1a.firebaseapp.com",
@@ -70,173 +63,87 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // --- VARIABLES GLOBALES ---
-    let user = { name: "", score: 0, solved: false, wrongAnswers: [], tries: 0 };
-
-    // --- OUTILS ---
-    function normalize(text) {
-      return text.toLowerCase().replace(/^the\s+/, "").replace(/s$/, "").trim();
-    }
-
-    // --- CHARGEMENT DE L'ENIGME ---
-    function loadRiddleText() {
-      db.collection("settings").doc("riddle1").get()
-        .then(doc => {
-          if (doc.exists) {
-            const content = doc.data().question;
-            if (content) {
-              document.getElementById("riddleText").innerHTML = content;
-            } else {
-              document.getElementById("riddleText").innerText = "No question found.";
-            }
-          } else {
-            document.getElementById("riddleText").innerText = "Riddle not found.";
-          }
-        })
-        .catch(error => {
-          console.error("Error loading riddle:", error);
-          document.getElementById("riddleText").innerText = "Error loading riddle.";
-        });
-    }
-
-    // --- RECUPERATION DE LA REPONSE ---
-    async function getCorrectAnswer() {
-      try {
-        const doc = await db.collection("settings").doc("riddle1").get();
-        if (doc.exists && doc.data().answer) {
-          const raw = doc.data().answer;
-          return normalize(raw);
+    // === Récupération de l'énigme en live ===
+    let currentAnswer = "";
+    function loadRiddle() {
+      db.collection("settings").doc("riddle1").onSnapshot(doc => {
+        if (doc.exists) {
+          const data = doc.data();
+          document.getElementById("question").innerHTML = data.question || "<em>En attente d'une énigme...</em>";
+          currentAnswer = (data.answer || "").trim().toLowerCase();
         } else {
-          console.error("No 'answer' field found in Firestore.");
-          return "";
+          document.getElementById("question").innerHTML = "<em>En attente d'une énigme...</em>";
+          currentAnswer = "";
         }
-      } catch (e) {
-        console.error("Error fetching answer from Firestore:", e);
-        return "";
-      }
-    }
-
-    // --- SESSION ---
-    function startSession() {
-      const name = document.getElementById("nickname").value.trim();
-      const forbidden = ["admin", "null", "undefined", "system"];
-
-      if (!name) return alert("Please enter your nickname");
-      if (name.length < 3 || name.length > 20 || !/^[a-zA-Z0-9]+$/.test(name) || forbidden.includes(name.toLowerCase())) {
-        alert("Invalid nickname.");
-        return;
-      }
-
-      const saved = localStorage.getItem("riddlebox_" + name);
-      let userData = saved ? JSON.parse(saved) : { name, score: 0, solved: false, wrongAnswers: [], tries: 0 };
-
-      db.collection("scores").where("nickname", "==", name).get().then(snapshot => {
-        if (snapshot.empty && userData.score > 0) {
-          alert("Your score was reset by the admin.");
-          userData = { name, score: 0, solved: false, wrongAnswers: [], tries: 0 };
-        }
-
-        localStorage.setItem("riddlebox_" + name, JSON.stringify(userData));
-        user = userData;
-
-        document.getElementById("profileName").textContent = user.name;
-        document.getElementById("profileScore").textContent = user.score;
-        document.getElementById("loginBox").classList.add("hidden");
-        document.getElementById("riddleBox").classList.remove("hidden");
-        document.getElementById("profileBox").classList.remove("hidden");
-        updateInputState();
-        loadRiddleText();
-        loadRanking();
       });
     }
+    loadRiddle();
 
-    // --- SOUMISSION DE LA REPONSE ---
-    function submitRiddle() {
+    // === Gérer la soumission du formulaire ===
+    document.getElementById("answerForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const nickname = document.getElementById("nickname").value.trim();
       const answer = document.getElementById("answer").value.trim();
-      const feedback = document.getElementById("feedback");
-      if (!answer) {
-        feedback.textContent = "Please enter an answer before submitting.";
-        feedback.className = "error";
+      const msg = document.getElementById("message");
+
+      msg.textContent = "";
+      if (!nickname || !answer) {
+        msg.textContent = "Merci de remplir tous les champs.";
+        msg.className = "error";
         return;
       }
-      if (user.solved || user.tries >= 2) {
-        feedback.textContent = "You have used all your attempts.";
-        feedback.className = "error";
-        return;
+
+      let isCorrect = false;
+      if (currentAnswer && answer.trim().toLowerCase() === currentAnswer) {
+        isCorrect = true;
       }
-      getCorrectAnswer().then(correct => {
-        const isCorrect = normalize(answer) === correct;
-        user.tries += 1;
-        if (isCorrect) {
-          user.solved = true;
-          user.score += 1;
-        } else {
-          user.wrongAnswers.push(answer);
-        }
 
-        localStorage.setItem("riddlebox_" + user.name, JSON.stringify(user));
-        updateInputState();
-        feedback.textContent = isCorrect ? "Correct!" : `Incorrect. You have used ${user.tries} of 2 attempts.`;
-        feedback.className = isCorrect ? "success" : "error";
-        sendToFirebase(user.name, answer, isCorrect);
-        document.getElementById("profileScore").textContent = user.score;
-        loadRanking();
-      });
-    }
+      // Ajoute la réponse à Firestore
+      try {
+        await db.collection("scores").add({
+          nickname: nickname,
+          answer: answer,
+          correct: isCorrect,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        msg.textContent = isCorrect
+          ? "Bravo, c'est la bonne réponse !"
+          : "Ta réponse a été enregistrée. Essaie encore !";
+        msg.className = isCorrect ? "success" : "error";
+        document.getElementById("answerForm").reset();
+        loadScores();
+      } catch (err) {
+        msg.textContent = "Erreur lors de l'envoi: " + err;
+        msg.className = "error";
+      }
+    });
 
-    // --- MISE A JOUR DES CHAMPS ---
-    function updateInputState() {
-      const input = document.getElementById("answer");
-      const button = document.getElementById("submitBtn");
-      const disabled = user.solved || user.tries >= 2;
-      input.disabled = disabled;
-      button.disabled = disabled;
-      button.classList.toggle("disabled", disabled);
-    }
-
-    // --- DECONNEXION ---
-    function logout() {
-      document.getElementById("loginBox").classList.remove("hidden");
-      document.getElementById("riddleBox").classList.add("hidden");
-      document.getElementById("profileBox").classList.add("hidden");
-      document.getElementById("nickname").value = "";
-      document.getElementById("answer").value = "";
-      document.getElementById("feedback").textContent = "";
-    }
-
-    // --- ENREGISTREMENT FIREBASE ---
-    function sendToFirebase(nickname, answer, correct) {
-      db.collection("scores").add({
-        nickname,
-        answer,
-        correct,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-
-    // --- CLASSEMENT ---
-    function loadRanking() {
-      const tbody = document.querySelector("#rankingTable tbody");
-      tbody.innerHTML = "";
-      db.collection("scores")
-        .orderBy("timestamp", "desc")
-        .limit(20)
-        .get()
+    // === Affichage des derniers scores ===
+    function loadScores() {
+      const table = document.getElementById("scoreTable");
+      table.innerHTML = "";
+      db.collection("scores").orderBy("timestamp", "desc").limit(15).get()
         .then(snapshot => {
           snapshot.forEach(doc => {
             const d = doc.data();
+            let dateStr = "";
+            if (d.timestamp && d.timestamp.toDate) {
+              dateStr = new Date(d.timestamp.toDate()).toLocaleString();
+            }
             const tr = document.createElement("tr");
-            tr.innerHTML = `<td>${d.nickname}</td><td>${d.answer}</td><td>${d.correct ? "✔️" : "❌"}</td><td>${d.timestamp && d.timestamp.toDate ? new Date(d.timestamp.toDate()).toLocaleString() : ""}</td>`;
-            tbody.appendChild(tr);
+            tr.innerHTML = `
+              <td>${d.nickname}</td>
+              <td>${d.answer}</td>
+              <td>${d.correct ? "✔️" : "❌"}</td>
+              <td>${dateStr}</td>
+            `;
+            table.appendChild(tr);
           });
         });
     }
-
-    // --- CHARGEMENT AU DEMARRAGE ---
-    document.addEventListener("DOMContentLoaded", function() {
-      loadRiddleText();
-      loadRanking();
-    });
+    loadScores();
+    // Optionnel : reload auto toutes les 30s
+    setInterval(loadScores, 30000);
   </script>
 </body>
 </html>
