@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,51 +17,52 @@
     .danger { background: #dc2626; }
   </style>
 </head>
-<body>  <h1>RiddleBox Admin</h1>  <div class="box" id="loginBox">
+<body>
+  <h1>RiddleBox Admin</h1>
+  <div class="box" id="loginBox">
     <p>Enter admin password:</p>
     <input type="password" id="adminPass" placeholder="Password">
     <button onclick="checkPassword()">Access Admin</button>
     <p id="loginError" style="color:red;"></p>
-  </div>  <div class="box hidden" id="adminPanel"><div class="box">
-  <h2>Edit Riddle</h2>
-  <label>Question (HTML allowed):</label>
-  <textarea id="newQuestion"></textarea>
-  <label>Correct Answer:</label>
-  <input type="text" id="newAnswer" placeholder="Correct answer">
-  <button onclick="updateRiddle()">Save Riddle</button>
-</div>
-
-<div class="box">
-  <h2>Live Scores</h2>
-  <button onclick="loadScores()">Refresh Scores</button>
-  <table>
-    <thead>
-      <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
-    </thead>
-    <tbody id="scoreTable"></tbody>
-  </table>
-</div>
-
-<div class="box">
-  <h2>Reset Scores</h2>
-  <button class="danger" onclick="resetAllScores()">Delete All Scores</button>
-</div>
-
-<div class="box">
-  <h2>Manage Players</h2>
-
-  <label>Choose a nickname to delete:</label>
-  <select id="nicknameList"></select>
-  <button class="danger" onclick="deleteSelectedName()">Delete This Player</button>
-
-  <hr style="margin: 2rem 0;" />
-
-  <label>Keep only this nickname (delete all others):</label>
-  <select id="keepOnlyList"></select>
-  <button class="danger" onclick="deleteAllExcept()">Delete All Except This Player</button>
-</div>
-
-  </div>  <!-- Firebase -->  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>  <script>
+  </div>
+  <div class="box hidden" id="adminPanel">
+    <div class="box">
+      <h2>Edit Riddle</h2>
+      <label>Question (HTML allowed):</label>
+      <textarea id="newQuestion"></textarea>
+      <label>Correct Answer:</label>
+      <input type="text" id="newAnswer" placeholder="Correct answer">
+      <button onclick="updateRiddle()">Save Riddle</button>
+    </div>
+    <div class="box">
+      <h2>Live Scores</h2>
+      <button onclick="loadScores()">Refresh Scores</button>
+      <table>
+        <thead>
+          <tr><th>Nickname</th><th>Answer</th><th>Correct</th><th>Date</th></tr>
+        </thead>
+        <tbody id="scoreTable"></tbody>
+      </table>
+    </div>
+    <div class="box">
+      <h2>Reset Scores</h2>
+      <button class="danger" onclick="resetAllScores()">Delete All Scores</button>
+    </div>
+    <div class="box">
+      <h2>Manage Players</h2>
+      <label>Choose a nickname to delete:</label>
+      <select id="nicknameList"></select>
+      <button class="danger" onclick="deleteSelectedName()">Delete This Player</button>
+      <hr style="margin: 2rem 0;" />
+      <label>Keep only this nickname (delete all others):</label>
+      <select id="keepOnlyList"></select>
+      <button class="danger" onclick="deleteAllExcept()">Delete All Except This Player</button>
+    </div>
+  </div>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAeBMjUnQLuv33knZNf3-fmxxnZqJKG94E",
       authDomain: "riddlebox-2bd1a.firebaseapp.com",
@@ -80,6 +82,8 @@
         document.getElementById("loginBox").classList.add("hidden");
         document.getElementById("adminPanel").classList.remove("hidden");
         loadNicknames();
+        loadScores();
+        loadRiddleForEdit();
       } else {
         document.getElementById("loginError").textContent = "Incorrect password.";
       }
@@ -102,6 +106,18 @@
       .catch(err => alert("Error: " + err));
     }
 
+    // Charge la question/réponse actuelle pour édition
+    function loadRiddleForEdit() {
+      db.collection("settings").doc("riddle1").get()
+        .then(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            document.getElementById("newQuestion").value = data.question || "";
+            document.getElementById("newAnswer").value = data.answer || "";
+          }
+        });
+    }
+
     function loadScores() {
       const table = document.getElementById("scoreTable");
       table.innerHTML = "";
@@ -110,12 +126,16 @@
         .then(snapshot => {
           snapshot.forEach(doc => {
             const d = doc.data();
+            let dateStr = "";
+            if (d.timestamp && d.timestamp.toDate) {
+              dateStr = new Date(d.timestamp.toDate()).toLocaleString();
+            }
             const row = document.createElement("tr");
             row.innerHTML = `
               <td>${d.nickname}</td>
               <td>${d.answer}</td>
               <td>${d.correct ? "✔️" : "❌"}</td>
-              <td>${new Date(d.timestamp.toDate()).toLocaleString()}</td>
+              <td>${dateStr}</td>
             `;
             table.appendChild(row);
           });
@@ -125,14 +145,27 @@
     function resetAllScores() {
       if (!confirm("Are you sure you want to delete ALL scores?")) return;
 
-      db.collection("scores").get().then(snapshot => {
-        const batch = db.batch();
-        snapshot.forEach(doc => batch.delete(doc.ref));
-        return batch.commit();
-      }).then(() => {
+      db.collection("scores").get().then(async snapshot => {
+        const batches = [];
+        let batch = db.batch();
+        let opCount = 0;
+        snapshot.forEach(doc => {
+          batch.delete(doc.ref);
+          opCount++;
+          if (opCount === 499) {
+            batches.push(batch.commit());
+            batch = db.batch();
+            opCount = 0;
+          }
+        });
+        if (opCount > 0) batches.push(batch.commit());
+        await Promise.all(batches);
         alert("All scores deleted.");
         loadScores();
         loadNicknames();
+      }).catch(err => {
+        alert("Error deleting: " + err);
+        console.error(err);
       });
     }
 
@@ -165,15 +198,32 @@
       if (!confirm(`Delete all scores for ${selected} ?`)) return;
 
       db.collection("scores").where("nickname", "==", selected).get()
-        .then(snapshot => {
-          const batch = db.batch();
-          snapshot.forEach(doc => batch.delete(doc.ref));
-          return batch.commit();
-        })
-        .then(() => {
+        .then(async snapshot => {
+          if (snapshot.empty) {
+            alert("No scores found for this nickname.");
+            return;
+          }
+          const batches = [];
+          let batch = db.batch();
+          let opCount = 0;
+          snapshot.forEach(doc => {
+            batch.delete(doc.ref);
+            opCount++;
+            if (opCount === 499) {
+              batches.push(batch.commit());
+              batch = db.batch();
+              opCount = 0;
+            }
+          });
+          if (opCount > 0) batches.push(batch.commit());
+          await Promise.all(batches);
           alert("Deleted.");
           loadScores();
           loadNicknames();
+        })
+        .catch(err => {
+          alert("Error deleting: " + err);
+          console.error(err);
         });
     }
 
@@ -181,17 +231,32 @@
       const keep = document.getElementById("keepOnlyList").value;
       if (!confirm(`Delete all scores except for ${keep} ?`)) return;
 
-      db.collection("scores").get().then(snapshot => {
-        const batch = db.batch();
+      db.collection("scores").get().then(async snapshot => {
+        const batches = [];
+        let batch = db.batch();
+        let opCount = 0;
         snapshot.forEach(doc => {
-          if (doc.data().nickname !== keep) batch.delete(doc.ref);
+          if (doc.data().nickname !== keep) {
+            batch.delete(doc.ref);
+            opCount++;
+            if (opCount === 499) {
+              batches.push(batch.commit());
+              batch = db.batch();
+              opCount = 0;
+            }
+          }
         });
-        return batch.commit();
-      }).then(() => {
+        if (opCount > 0) batches.push(batch.commit());
+        await Promise.all(batches);
         alert("All others deleted.");
         loadScores();
         loadNicknames();
+      })
+      .catch(err => {
+        alert("Error deleting: " + err);
+        console.error(err);
       });
     }
-  </script></body>
+  </script>
+</body>
 </html>
