@@ -7,21 +7,6 @@
   <!-- Google Fonts (Montserrat) -->
   <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <style>
-    .wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-bottom: 2em;
-    }
-    .card-switch {
-      margin: 2em 0 1em 0;
-    }
-    /* Optionally reduce width for better mobile fit */
-    @media (max-width: 500px) {
-      .flip-card__inner { width: 95vw !important; }
-    }
-  </style>
 </head>
 <body>
   <header>
@@ -31,34 +16,24 @@
 
   <main class="container">
 
+    <!-- Bloc de la question -->
     <div class="card" id="riddleBox">
       <h2>Current riddle</h2>
       <div id="question" style="min-height:2em"></div>
     </div>
 
-    <!-- Flip-card styled answer form -->
-    <div class="wrapper">
-      <div class="card-switch">
-        <label class="switch">
-          <!-- Toggle hidden, since only one face is used -->
-          <input type="checkbox" class="toggle" style="display:none;">
-          <span class="slider"></span>
-          <span class="card-side"></span>
-          <div class="flip-card__inner" style="height:260px;">
-            <div class="flip-card__front" style="height:260px;">
-              <div class="title">Submit your answer</div>
-              <form class="flip-card__form" id="answerForm" autocomplete="off">
-                <input type="text" id="nickname" placeholder="Your nickname" maxlength="30" required class="flip-card__input">
-                <input type="text" id="answer" placeholder="Your answer..." maxlength="100" required class="flip-card__input">
-                <button type="submit" class="flip-card__btn">Submit</button>
-                <div id="message"></div>
-              </form>
-            </div>
-          </div>
-        </label>
-      </div>
+    <!-- Bloc du formulaire réponse -->
+    <div class="card">
+      <h2>Submit your answer</h2>
+      <form id="answerForm" autocomplete="off">
+        <input type="text" id="nickname" placeholder="Your nickname" maxlength="30" required>
+        <input type="text" id="answer" placeholder="Your answer..." maxlength="100" required>
+        <button type="submit">Submit</button>
+        <div id="message"></div>
+      </form>
     </div>
 
+    <!-- Bloc des scores -->
     <div class="card">
       <h2>Latest attempts</h2>
       <table>
@@ -73,6 +48,7 @@
         <tbody id="scoreTable"></tbody>
       </table>
     </div>
+
   </main>
   <footer>
     <p>&copy; 2025 RiddleBox – Made with ❤️ by Walid</p>
