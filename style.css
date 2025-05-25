@@ -1,23 +1,17 @@
-/* === Variables globales Uiverse.io === */
 :root {
-  --input-focus: #2d8cf0;
-  --font-color: #323232;
-  --font-color-sub: #666;
-  --bg-color: #fff;
-  --bg-color-alt: #f3f4f6;
+  --bg-main: #f5f6fa;
+  --bg-card: #fff;
   --main-color: #323232;
   --accent: #2d8cf0;
-  --bg-card: #fff;
-  --bg-main: #f5f6fa;
+  --font-color-sub: #666;
 }
 
-/* === Général === */
 body {
+  background: var(--bg-main);
+  color: var(--main-color);
   font-family: 'Montserrat', Arial, sans-serif;
   margin: 0;
   padding: 0;
-  background: var(--bg-main);
-  color: var(--main-color);
 }
 
 header {
@@ -40,19 +34,17 @@ footer {
 .container {
   max-width: 650px;
   margin: 2em auto;
-  padding: 2em 1em;
+  padding: 1em;
   box-sizing: border-box;
 }
 
-/* === Card et contenu principal === */
-.card, .box {
+.card {
   background: var(--bg-card);
   border-radius: 12px;
   box-shadow: 0 4px 16px #2d8cf011;
   border: 2px solid var(--main-color);
   padding: 2em;
   margin-bottom: 2em;
-  position: relative;
   max-width: 650px;
   margin-left: auto;
   margin-right: auto;
@@ -60,7 +52,6 @@ footer {
   width: 100%;
 }
 
-/* === Bloc question énigme === */
 .riddle-question-block {
   background: var(--bg-card);
   border-radius: 12px;
@@ -71,38 +62,14 @@ footer {
   width: 100%;
   box-sizing: border-box;
 }
+.riddle-question-block p { margin: 0.6em 0; font-size: 1.1em; }
+.riddle-clues-label { color: var(--accent); font-size: 1.08em; margin-top: 1em; }
+ul.riddle-clues { margin: 0.5em 0 1.2em 0.8em; padding-left: 1.2em; font-size: 1.07em; }
+ul.riddle-clues li { margin-bottom: 0.32em; line-height: 1.4; }
+.riddle-final-question { margin-top: 1.3em; font-size: 1.16em; font-weight: bold; }
 
-.riddle-question-block p {
-  margin: 0.6em 0;
-  font-size: 1.1em;
-}
-
-.riddle-clues-label {
-  color: var(--accent);
-  font-size: 1.08em;
-  margin-top: 1em;
-}
-
-ul.riddle-clues {
-  margin: 0.5em 0 1.2em 0.8em;
-  padding-left: 1.2em;
-  font-size: 1.07em;
-}
-
-ul.riddle-clues li {
-  margin-bottom: 0.32em;
-  line-height: 1.4;
-}
-
-.riddle-final-question {
-  margin-top: 1.3em;
-  font-size: 1.16em;
-  font-weight: bold;
-}
-
-/* === Formulaire réponse === */
 #answerForm {
-  margin: 2em 0 1em 0;
+  margin: 1em 0 0 0;
   display: flex;
   flex-direction: column;
   gap: 1em;
@@ -112,7 +79,6 @@ ul.riddle-clues li {
   margin-left: auto;
   margin-right: auto;
 }
-
 #answerForm input[type="text"] {
   width: 100%;
   font-size: 1em;
@@ -126,11 +92,9 @@ ul.riddle-clues li {
   transition: border 0.2s, box-shadow 0.2s;
   outline: none;
 }
-
 #answerForm input[type="text"]:focus {
-  border: 2px solid var(--input-focus);
+  border: 2px solid var(--accent);
 }
-
 #answerForm button {
   background: var(--accent);
   color: #fff;
@@ -143,65 +107,41 @@ ul.riddle-clues li {
   transition: background 0.2s;
   box-shadow: 2px 2px var(--main-color);
 }
+#answerForm button:hover { background: #155fc3; }
 
-#answerForm button:hover {
-  background: #155fc3;
-}
+#message { min-height: 1.5em; }
 
-/* === Résultats & scores === */
-#results {
-  margin: 2em auto 0 auto;
+#results, table {
   width: 100%;
   max-width: 650px;
   box-sizing: border-box;
 }
-
-/* === Table des scores === */
 table {
-  width: 100%;
   border-collapse: collapse;
   margin-top: 1em;
   background: var(--bg-card);
   border-radius: 8px;
   overflow: hidden;
-  box-sizing: border-box;
 }
 th, td {
   padding: 0.7em 0.6em;
   border: 1px solid #ddd;
   text-align: left;
 }
-th {
-  background: #f4f7fa;
-  color: var(--main-color);
-}
+th { background: #f4f7fa; color: var(--main-color); }
 
-/* === Feedback messages === */
-.success {
-  color: #22c55e;
-  font-weight: bold;
-}
-.error {
-  color: #ef4444;
-  font-weight: bold;
-}
+.success { color: #22c55e; font-weight: bold; }
+.error { color: #ef4444; font-weight: bold; }
 
-/* === Responsive Design === */
 @media (max-width: 700px) {
-  .container, .card, .box, .riddle-question-block, #results {
-    max-width: 99vw;
-    padding-left: 0.5em;
-    padding-right: 0.5em;
+  .container, .card, .riddle-question-block, #results, table {
+    max-width: 99vw !important;
+    padding-left: 0.5em !important;
+    padding-right: 0.5em !important;
   }
-  #answerForm {
-    max-width: 100vw;
-  }
-  table, th, td {
-    font-size: 0.98em;
-  }
+  #answerForm { max-width: 100vw; }
+  table, th, td { font-size: 0.98em; }
 }
-
-/* === Accessibilité et détails === */
 ::placeholder {
   color: var(--font-color-sub);
   opacity: 0.8;
