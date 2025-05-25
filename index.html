@@ -6,28 +6,59 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Google Fonts (Montserrat) -->
   <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700&display=swap" rel="stylesheet">
-  <!-- Main style -->
   <link rel="stylesheet" href="style.css">
+  <style>
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 2em;
+    }
+    .card-switch {
+      margin: 2em 0 1em 0;
+    }
+    /* Optionally reduce width for better mobile fit */
+    @media (max-width: 500px) {
+      .flip-card__inner { width: 95vw !important; }
+    }
+  </style>
 </head>
 <body>
   <header>
     <h1>🧩 RiddleBox</h1>
     <p class="subtitle">Time to play</p>
   </header>
+
   <main class="container">
+
     <div class="card" id="riddleBox">
       <h2>Current riddle</h2>
       <div id="question" style="min-height:2em"></div>
     </div>
-    <div class="card">
-      <h2>Submit your answer</h2>
-      <form id="answerForm" autocomplete="off">
-        <input type="text" id="nickname" placeholder="Your nickname" maxlength="30" required class="flip-card__input">
-        <input type="text" id="answer" placeholder="Your answer..." maxlength="100" required class="flip-card__input">
-        <button type="submit" class="flip-card__btn">Submit</button>
-      </form>
-      <div id="message"></div>
+
+    <!-- Flip-card styled answer form -->
+    <div class="wrapper">
+      <div class="card-switch">
+        <label class="switch">
+          <!-- Toggle hidden, since only one face is used -->
+          <input type="checkbox" class="toggle" style="display:none;">
+          <span class="slider"></span>
+          <span class="card-side"></span>
+          <div class="flip-card__inner" style="height:260px;">
+            <div class="flip-card__front" style="height:260px;">
+              <div class="title">Submit your answer</div>
+              <form class="flip-card__form" id="answerForm" autocomplete="off">
+                <input type="text" id="nickname" placeholder="Your nickname" maxlength="30" required class="flip-card__input">
+                <input type="text" id="answer" placeholder="Your answer..." maxlength="100" required class="flip-card__input">
+                <button type="submit" class="flip-card__btn">Submit</button>
+                <div id="message"></div>
+              </form>
+            </div>
+          </div>
+        </label>
+      </div>
     </div>
+
     <div class="card">
       <h2>Latest attempts</h2>
       <table>
@@ -142,7 +173,6 @@
         });
     }
     loadScores();
-    // Optional: auto-reload every 30s
     setInterval(loadScores, 30000);
   </script>
 </body>
