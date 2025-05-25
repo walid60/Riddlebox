@@ -313,4 +313,11 @@ th {
     font-size: 1em;
     padding: 1.2em 0.5em 1em 0.5em;
   }
+#question, .riddle-block {
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  margin: 0 auto 1.5em auto;
+  box-sizing: border-box;
+}
 }
