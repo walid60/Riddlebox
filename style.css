@@ -1,20 +1,20 @@
-/* === Uiverse.io inspired variables === */
-:root, .wrapper {
+:root {
   --input-focus: #2d8cf0;
   --font-color: #323232;
   --font-color-sub: #666;
   --bg-color: #fff;
   --bg-color-alt: #f3f4f6;
   --main-color: #323232;
+  --accent: #2d8cf0;
 }
 
-/* === General Page === */
+/* General */
 body {
   font-family: 'Montserrat', Arial, sans-serif;
-  margin: 0;
-  padding: 0;
   background: var(--bg-color-alt);
   color: var(--font-color);
+  margin: 0;
+  padding: 0;
 }
 
 header {
@@ -26,7 +26,6 @@ header {
   margin-bottom: 2em;
   box-shadow: 0 4px 20px #2d8cf033;
 }
-
 footer {
   margin-top: 3rem;
   text-align: center;
@@ -40,7 +39,7 @@ footer {
   padding: 2em 1em;
 }
 
-/* === Card === */
+/* Cards & Forms */
 .card, .box, .flip-card__front, .flip-card__back {
   background: var(--bg-color);
   border-radius: 12px;
@@ -51,20 +50,20 @@ footer {
   position: relative;
 }
 
-/* === Buttons === */
+/* Buttons */
 button, .flip-card__btn {
   background: var(--bg-color);
-  color: var(--font-color);
+  color: var(--main-color);
   border-radius: 5px;
   border: 2px solid var(--main-color);
   padding: 0.7em 2em;
-  margin: 20px 0 20px 0;
   font-size: 17px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: 4px 4px var(--main-color);
-  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s, color 0.2s;
 }
+
 button:hover, .flip-card__btn:hover {
   background: var(--input-focus);
   color: #fff;
@@ -74,7 +73,7 @@ button:active, .flip-card__btn:active {
   transform: translate(3px, 3px);
 }
 
-/* === Inputs & Textareas === */
+/* Inputs */
 input[type="text"], input[type="email"], input[type="password"], .flip-card__input, textarea, select {
   width: 100%;
   max-width: 100%;
@@ -99,7 +98,7 @@ input:focus, .flip-card__input:focus, textarea:focus {
   border: 2px solid var(--input-focus);
 }
 
-/* === Feedback messages === */
+/* Feedback messages */
 .success {
   color: #22c55e;
   font-weight: bold;
@@ -109,7 +108,7 @@ input:focus, .flip-card__input:focus, textarea:focus {
   font-weight: bold;
 }
 
-/* === Table Styling === */
+/* Table */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -128,7 +127,16 @@ th {
   color: var(--main-color);
 }
 
-/* === Switch (Login/Signup Toggle) === */
+/* Flip-card Switch (from Uiverse.io, adapté) */
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2em;
+}
+.card-switch {
+  margin: 2em 0 1em 0;
+}
 .switch {
   transform: translateY(-80px);
   position: relative;
@@ -205,10 +213,9 @@ th {
 .toggle:checked ~ .card-side:after {
   text-decoration: underline;
 }
-/* Card Flip Login/Signup */
 .flip-card__inner {
   width: 300px;
-  height: 350px;
+  min-height: 220px;
   position: relative;
   background-color: transparent;
   perspective: 1000px;
@@ -255,7 +262,45 @@ th {
   color: var(--main-color);
 }
 
-/* === Responsive Design === */
+/* Riddle block (énigme) */
+.riddle-block {
+  background: #f9fafb;
+  border-radius: 10px;
+  border-left: 4px solid var(--accent);
+  padding: 1.2em 1.6em 1.2em 1.4em;
+  margin-bottom: 1.5em;
+  box-shadow: 0 4px 12px #2d8cf022;
+}
+.riddle-block p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  font-size: 1.1em;
+}
+.riddle-clues-title {
+  margin-top: 1em;
+  margin-bottom: 0.2em;
+  font-size: 1.1em;
+  color: var(--accent);
+  font-weight: bold;
+  letter-spacing: 0.03em;
+}
+.riddle-clues {
+  margin-top: 0;
+  margin-bottom: 1em;
+  padding-left: 1.2em;
+}
+.riddle-block ul.riddle-clues li {
+  margin-bottom: 0.3em;
+  font-size: 1.05em;
+}
+.riddle-question {
+  margin-top: 1em;
+  font-size: 1.15em;
+  color: #222;
+  font-weight: bold;
+}
+
+/* Responsive */
 @media (max-width: 600px) {
   .container, .card, .box, .flip-card__inner {
     padding: 1em !important;
