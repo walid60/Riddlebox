@@ -106,7 +106,6 @@
       .catch(err => alert("Error: " + err));
     }
 
-    // Charge la question/réponse actuelle pour édition
     function loadRiddleForEdit() {
       db.collection("settings").doc("riddle1").get()
         .then(doc => {
