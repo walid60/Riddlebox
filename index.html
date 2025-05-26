@@ -73,7 +73,7 @@
     let currentAnswer = "";
     function loadRiddle() {
       db.collection("settings").doc("riddle1").onSnapshot(doc => {
- (doc.exists) {
+        if (doc.exists) {
           const data = doc.data();
           document.getElementById("question").innerHTML = data.question || "<em>Waiting for a riddle...</em>";
           currentAnswer = (data.answer || "").trim().toLowerCase();
