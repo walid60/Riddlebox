@@ -40,7 +40,6 @@
         <thead>
           <tr>
             <th>Nickname</th>
-            <th>Answer</th>
             <th>Status</th>
             <th>Date</th>
           </tr>
@@ -74,7 +73,7 @@
     let currentAnswer = "";
     function loadRiddle() {
       db.collection("settings").doc("riddle1").onSnapshot(doc => {
-        if (doc.exists) {
+ (doc.exists) {
           const data = doc.data();
           document.getElementById("question").innerHTML = data.question || "<em>Waiting for a riddle...</em>";
           currentAnswer = (data.answer || "").trim().toLowerCase();
@@ -125,7 +124,7 @@
       }
     });
 
-    // === Show latest scores ===
+    // === Show latest scores (answers hidden) ===
     function loadScores() {
       const table = document.getElementById("scoreTable");
       table.innerHTML = "";
@@ -140,7 +139,6 @@
             const tr = document.createElement("tr");
             tr.innerHTML = `
               <td>${d.nickname}</td>
-              <td>${d.answer}</td>
               <td>${d.correct ? "✔️" : "❌"}</td>
               <td>${dateStr}</td>
             `;
