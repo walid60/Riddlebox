@@ -76,7 +76,7 @@
         if (doc.exists) {
           const data = doc.data();
           document.getElementById("question").innerHTML = data.question || "<em>Waiting for a riddle...</em>";
-          currentAnswer = (data.answer || "").trim().toLowerCase();
+          currentAnswer = (data.answer || "").trim();
         } else {
           document.getElementById("question").innerHTML = "<em>Waiting for a riddle...</em>";
           currentAnswer = "";
@@ -84,6 +84,15 @@
       });
     }
     loadRiddle();
+
+    // === Insensitive comparison function (case & accent) ===
+    function normalize(str) {
+      return str
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
 
     // === Handle form submission ===
     document.getElementById("answerForm").addEventListener("submit", async function(e) {
@@ -100,7 +109,7 @@
       }
 
       let isCorrect = false;
-      if (currentAnswer && answer.trim().toLowerCase() === currentAnswer) {
+      if (currentAnswer && normalize(answer) === normalize(currentAnswer)) {
         isCorrect = true;
       }
 
